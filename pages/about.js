@@ -27,23 +27,23 @@ const funFacts = [
 const values = [
     {
         icon: FaTshirt,
-        title: "Curated Vintage",
-        description: "Each piece in our collection is carefully selected for its unique character and style, ensuring quality and authenticity."
+        title: "Quality Products",
+        description: "Each item in our collection is carefully selected for its unique character and style, ensuring quality and authenticity."
     },
     {
         icon: FaLeaf,
-        title: "Climate Conscious",
-        description: "We focus on breathable, comfortable pieces that are perfect for Singapore's tropical weather."
+        title: "Eco-Friendly",
+        description: "We focus on sustainable and environmentally conscious products that minimize our ecological footprint."
     },
     {
         icon: FaHeart,
-        title: "Youth Culture",
-        description: "Our style speaks to the bold, expressive spirit of Singapore's youth street culture."
+        title: "Customer Focus", 
+        description: "Our products are designed with our customers in mind, catering to their unique needs and preferences."
     },
     {
         icon: FaGlobe,
-        title: "Sustainable Fashion",
-        description: "By curating vintage pieces, we promote sustainable fashion and reduce environmental impact."
+        title: "Sustainability",
+        description: "We promote sustainable practices and responsible consumption throughout our business operations."
     }
 ];
 
@@ -134,9 +134,9 @@ export default function About() {
                                     Where Vintage Meets Street Culture
                                 </MotionText>
                                 <MotionText color="whiteAlpha.700" fontSize="lg" lineHeight="tall" variants={itemVariants}>
-                                    KAPPY was founded by three passionate teenagers in Singapore who shared a common frustration - wanting to be fashionable while dealing with the city's hot and humid climate.
-                                    What started as their personal quest to find stylish yet breathable vintage pieces has grown into a curated collection that helps other young Singaporeans express themselves
-                                    without compromising on comfort.
+                                    Founded with a passion for fashion and style, KAPPY emerged from a desire to make vintage streetwear accessible and comfortable for modern urban life.
+                                    What started as a personal quest to curate breathable, stylish pieces has grown into a thoughtfully selected collection that helps fashion-conscious individuals express themselves
+                                    while staying comfortable in any climate.
                                 </MotionText>
                             </MotionBox>
 

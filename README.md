@@ -1,6 +1,19 @@
 # KAPPY - Vintage Streetwear E-commerce Platform
 
-KAPPY is a modern e-commerce platform specializing in vintage streetwear curated for Singapore's youth and climate. This web application is built using Next.js and features a responsive design with modern animations.
+A modern e-commerce platform specializing in vintage streetwear, built with Next.js and designed for Singapore's youth fashion scene.
+
+[![Next.js](https://img.shields.io/badge/Next.js-13.0-black)](https://nextjs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js->=14-green)](https://nodejs.org/)
+[![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
+
+## 📋 Table of Contents
+- [Quick Start](#-quick-start)
+- [Features](#-features)
+- [Project Structure](#-project-structure)
+- [Tech Stack](#-tech-stack)
+- [Development](#-development)
+- [Environment Setup](#-environment-setup)
+- [Contributing](#-contributing)
 
 ## 🚀 Quick Start
 
@@ -9,150 +22,155 @@ KAPPY is a modern e-commerce platform specializing in vintage streetwear curated
 - npm (Node Package Manager)
 
 ### Installation
-1. Clone the repository:
 ```bash
-git clone [your-repository-url]
-cd web-shop
-```
+# Clone the repository
+git clone https://github.com/ljh0311/CloudProj1.git
+cd CloudProj1
 
-2. Install dependencies:
-```bash
+# Install dependencies
 npm install
-```
 
-3. Run the development server:
-```bash
+# Set up environment variables
+cp .env.example .env.local
+
+# Start development server
 npm run dev
 ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser
+Visit [http://localhost:3000](http://localhost:3000) to view the application.
+
+## ✨ Features
+
+- **Authentication System**
+  - Secure user authentication
+  - Role-based access control
+  - Protected routes
+
+- **Product Management**
+  - Dynamic product catalog
+  - Advanced filtering
+  - Real-time inventory updates
+
+- **Modern UI/UX**
+  - Responsive design
+  - Animated transitions
+  - Dark mode support
+
+- **Performance**
+  - Server-side rendering
+  - Image optimization
+  - Code splitting
 
 ## 🏗️ Project Structure
 
 ```
-web-shop/
+CloudProj1/
 ├── components/          # Reusable React components
-│   ├── Logo.js         # Logo component with styling
-│   ├── Navbar.js       # Navigation bar component
-│   └── AnimatedBackground.js  # Animated background effects
-├── pages/              # Next.js pages
-│   ├── _app.js        # App wrapper with global styles
-│   ├── index.js       # Homepage
-│   ├── about.js       # About page
-│   └── shop.js        # Shop page (in development)
-├── public/            # Static assets
-│   └── images/       # Image assets
-└── styles/           # Global styles and theme
+├── pages/              # Next.js pages and API routes
+├── public/             # Static assets
+├── utils/              # Utility functions
+├── data/              # JSON data and mock APIs
+├── scripts/           # Utility scripts
+└── docs/              # Documentation
 ```
-
-## 🎨 Features
-
-- **Modern Design**: Black and white theme with animated elements
-- **Responsive Layout**: Mobile-first approach with responsive design
-- **Brand Story**: Dedicated about page with animated sections
-- **Performance Optimized**: Built with Next.js for optimal performance
 
 ## 🛠️ Tech Stack
 
-- **Framework**: Next.js
-- **UI Library**: Chakra UI
-- **Animations**: Framer Motion
-- **Styling**: Emotion
-- **Icons**: React Icons
+- **Framework**: [Next.js](https://nextjs.org/)
+- **Authentication**: [NextAuth.js](https://next-auth.js.org/)
+- **UI Components**: [Chakra UI](https://chakra-ui.com/)
+- **Styling**: [Emotion](https://emotion.sh/)
+- **Animations**: [Framer Motion](https://www.framer.com/motion/)
+- **State Management**: [React Context](https://reactjs.org/docs/context.html)
+- **Form Handling**: [React Hook Form](https://react-hook-form.com/)
 
-## 📱 Pages
+## 💻 Development
 
-### Homepage
-- Brand showcase
-- Featured collections
-- Quick navigation to key sections
-
-### About Page
-- Brand story
-- Mission statement
-- Core values
-- Community section
-
-## 🔄 Development Workflow
-
-1. Create a new branch for your feature:
 ```bash
-git checkout -b feature/your-feature-name
+# Start development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Start production server
+npm start
+
+# Run linter
+npm run lint
 ```
 
-2. Make your changes and commit:
-```bash
-git add .
-git commit -m "Description of changes"
+## 🔐 Environment Setup
+
+Create a `.env.local` file with the following variables:
+
+```env
+# Authentication
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your_nextauth_secret
+
+# Database
+DATABASE_URL=your_database_url
+
+# API Keys
+NEXT_PUBLIC_API_URL=your_api_url
 ```
-
-3. Push to your branch:
-```bash
-git push origin feature/your-feature-name
-```
-
-4. Create a Pull Request for review
-
-## 📦 Available Scripts
-
-- `npm run dev`: Start development server
-- `npm run build`: Build for production
-- `npm start`: Run production build
-- `npm run lint`: Run linter
-
-## 🎯 Future Development
-
-- [ ] Implement shopping cart functionality
-- [ ] Add product catalog
-- [ ] Integrate payment gateway
-- [ ] Add user authentication
-- [ ] Create admin dashboard
-- [ ] Implement inventory management
-- [ ] Add size guide
-- [ ] Integrate social media feeds
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-## 📝 Notes
+## 📝 Code Style
 
-- The project uses a dark theme to match the brand aesthetic
-- All images should be optimized before adding to the project
-- Keep animations subtle and professional
-- Maintain mobile responsiveness for all new features
-- Follow the existing code style and component structure
+- Use TypeScript for type safety
+- Follow ESLint configuration
+- Write meaningful commit messages
+- Add JSDoc comments for functions
+- Keep components small and focused
 
-## 💡 Design Principles
+## 🎯 Roadmap
 
-- Clean, minimalist aesthetic
-- Focus on typography and spacing
-- Responsive and mobile-first
-- Accessibility-conscious
-- Performance-optimized
+- [ ] Enhanced shopping cart functionality
+- [ ] Payment gateway integration
+- [ ] Admin dashboard improvements
+- [ ] Inventory management system
+- [ ] Product reviews and ratings
+- [ ] Social media integration
+- [ ] Wishlist functionality
+- [ ] Size guide implementation
 
-## 🔐 Environment Variables
+## 📚 Documentation
 
-Create a `.env.local` file in the root directory:
+- [Component Documentation](docs/components.md)
+- [API Documentation](docs/api.md)
+- [Database Schema](docs/database.md)
+- [Deployment Guide](docs/deployment.md)
 
-```env
-# Add your environment variables here
-NEXT_PUBLIC_API_URL=your_api_url
-```
+## 🎨 Design Guidelines
 
-## 📚 Additional Resources
+- **Colors**
+  - Primary: Black (#000000)
+  - Secondary: White (#FFFFFF)
+  - Accent: Based on collections
 
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Chakra UI Documentation](https://chakra-ui.com/docs/getting-started)
-- [Framer Motion Documentation](https://www.framer.com/motion/)
+- **Typography**
+  - Headings: System font stack
+  - Body: System font stack
+  - Monospace: For code blocks
 
-## 🎨 Brand Guidelines
+- **Spacing**
+  - Base unit: 4px
+  - Grid system: 12 columns
+  - Responsive breakpoints: 480px, 768px, 1024px, 1280px
 
-- Primary Color: Black (#000000)
-- Secondary Color: White (#FFFFFF)
-- Font: System font stack for optimal performance
-- Logo: Must be displayed according to brand specifications 
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+Made with ❤️ by the KAPPY team 

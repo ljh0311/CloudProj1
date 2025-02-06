@@ -116,32 +116,42 @@ DATABASE_URL=your_database_url
 NEXT_PUBLIC_API_URL=your_api_url
 ```
 
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## 📝 Code Style
-
-- Use TypeScript for type safety
-- Follow ESLint configuration
-- Write meaningful commit messages
-- Add JSDoc comments for functions
-- Keep components small and focused
-
 ## 🎯 Roadmap
 
-- [ ] Enhanced shopping cart functionality
-- [ ] Payment gateway integration
-- [ ] Admin dashboard improvements
-- [ ] Inventory management system
-- [ ] Product reviews and ratings
-- [ ] Social media integration
-- [ ] Wishlist functionality
-- [ ] Size guide implementation
+- [ ] Phase 1: Design & Planning
+  - [ ] Requirements analysis and documentation
+  - [ ] Cloud service model selection (IaaS/PaaS/FaaS)
+  - [ ] Cloud deployment strategy definition
+  - [ ] Storage & database architecture design
+  - [ ] High availability and security planning
+
+- [ ] Phase 2: AWS Infrastructure Setup
+  - [ ] VPC and networking configuration
+  - [ ] EC2 instances deployment
+  - [ ] Security groups and IAM setup
+  - [ ] Load balancer configuration
+  - [ ] Auto-scaling implementation
+
+- [ ] Phase 3: Web Application Development
+  - [ ] Basic e-commerce functionality
+  - [ ] Server-side implementation (PHP/Python)
+  - [ ] Database integration
+  - [ ] User authentication system
+  - [ ] Shopping cart functionality
+
+- [ ] Phase 4: Cloud Deployment & Testing
+  - [ ] Application deployment to AWS
+  - [ ] Database deployment and configuration
+  - [ ] Load testing with Apache JMeter
+  - [ ] Performance optimization
+  - [ ] Failover testing
+
+- [ ] Phase 5: Documentation & Analysis
+  - [ ] ChatGPT utilization documentation
+  - [ ] Cost analysis report
+  - [ ] Performance evaluation
+  - [ ] Scalability assessment
+  - [ ] Final project documentation
 
 ## 📚 Documentation
 
@@ -172,5 +182,3 @@ NEXT_PUBLIC_API_URL=your_api_url
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
-
-Made with ❤️ by the KAPPY team 

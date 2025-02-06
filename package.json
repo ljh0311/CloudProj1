@@ -1,0 +1,62 @@
+{
+  "name": "kappy-web",
+  "version": "1.0.0",
+  "description": "KAPPY - Vintage Streetwear E-commerce Platform",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "format": "prettier --write .",
+    "prepare": "husky install"
+  },
+  "dependencies": {
+    "@chakra-ui/icons": "^2.2.4",
+    "@chakra-ui/react": "^2.8.2",
+    "@emotion/react": "^11.11.3",
+    "@emotion/styled": "^11.11.0",
+    "bcryptjs": "^2.4.3",
+    "formik": "^2.4.6",
+    "framer-motion": "^10.17.9",
+    "next": "^14.0.4",
+    "next-auth": "^4.24.11",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-icons": "^5.0.1",
+    "yup": "^1.6.1"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.23",
+    "eslint-config-prettier": "^9.1.0",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.4.1",
+    "prettier": "^3.4.2"
+  },
+  "lint-staged": {
+    "*.{js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ljh0311/kappy-web.git"
+  },
+  "keywords": [
+    "nextjs",
+    "ecommerce",
+    "fashion",
+    "streetwear",
+    "singapore"
+  ],
+  "author": "KAPPY Team",
+  "license": "UNLICENSED"
+}

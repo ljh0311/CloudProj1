@@ -1,0 +1,40 @@
+{
+    "users": [
+        {
+            "id": 1,
+            "email": "admin@scapy.com",
+            "name": "Admin User",
+            "password": "admin",
+            "role": "admin",
+            "createdAt": "2024-06-01T12:00:00Z",
+            "updatedAt": "2024-06-01T12:00:00Z",
+            "orders": [],
+            "cart": []
+        },
+        {
+            "id": 2,
+            "email": "john@example.com",
+            "name": "John Doe",
+            "password": "john",
+            "role": "customer",
+            "createdAt": "2024-06-01T12:00:00Z",
+            "updatedAt": "2024-06-01T12:00:00Z",
+            "orders": [],
+            "cart": []
+
+        },
+        {
+            "id": 3,
+            "email": "jane@example.com",
+            "name": "Jane Smith",
+            "password": "jane",
+            "role": "customer",
+            "createdAt": "2024-06-01T12:00:00Z",
+            "updatedAt": "2024-06-01T12:00:00Z",
+            "orders": [],
+            "cart": []
+
+        }
+    ],
+    "lastId": 3
+}

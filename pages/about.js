@@ -59,7 +59,7 @@ export default function About() {
 
     useEffect(() => {
         controls.start({ opacity: 1, y: 0 });
-    }, []);
+    }, [controls]);
 
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -215,9 +215,9 @@ export default function About() {
                                     Join Our Community
                                 </MotionHeading>
                                 <MotionText color="whiteAlpha.700" fontSize="lg" lineHeight="tall">
-                                    KAPPY is more than just a brand – it's a community of style enthusiasts who appreciate the unique character of vintage
-                                    fashion and its place in modern street culture. Whether you're new to vintage fashion or a seasoned collector,
-                                    you'll find your place here.
+                                    KAPPY is more than just a brand &ndash; it&apos;s a community of style enthusiasts who appreciate the unique character of vintage
+                                    fashion and its place in modern street culture. Whether you&apos;re new to vintage fashion or a seasoned collector,
+                                    you&apos;ll find your place here.
                                 </MotionText>
                             </MotionBox>
                         </MotionBox>

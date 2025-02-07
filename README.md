@@ -12,6 +12,7 @@ A modern e-commerce platform specializing in vintage streetwear, built with Next
 - [Project Structure](#-project-structure)
 - [Tech Stack](#-tech-stack)
 - [Development](#-development)
+- [Cloud Deployment](#-cloud-deployment)
 - [Environment Setup](#-environment-setup)
 - [Contributing](#-contributing)
 
@@ -20,6 +21,7 @@ A modern e-commerce platform specializing in vintage streetwear, built with Next
 ### Prerequisites
 - Node.js (v14 or higher)
 - npm (Node Package Manager)
+- MySQL (for local development)
 
 ### Installation
 ```bash
@@ -39,6 +41,46 @@ npm run dev
 
 Visit [http://localhost:3000](http://localhost:3000) to view the application.
 
+## ☁️ Cloud Deployment
+
+### AWS Setup Requirements
+- AWS Account with necessary permissions
+- Amazon EC2 instance (t2.micro or higher)
+- Amazon RDS MySQL instance
+- Security groups configured for ports 3000 (app) and 3306 (MySQL)
+
+### Deployment Steps
+
+1. **Launch EC2 Instance**
+   - Use Amazon Linux 2 AMI
+   - In "Advanced Details" > "User data", paste the contents of `scripts/ec2-setup.sh`
+   - Configure security group to allow inbound traffic on port 3000
+
+2. **Configure RDS**
+   - Launch MySQL RDS instance
+   - Configure security group to allow inbound traffic from EC2 on port 3306
+   - Note down the endpoint, username, and password
+
+3. **Environment Setup**
+   ```bash
+   # SSH into your EC2 instance
+   cd /home/ec2-user/app/CloudProj1
+   
+   # Edit environment variables
+   nano .env
+   ```
+
+4. **Database Migration**
+   ```bash
+   # Run the migration script
+   node scripts/migrate-db.js
+   ```
+
+5. **Verify Deployment**
+   - Visit `http://your-ec2-public-ip:3000`
+   - Check application logs: `pm2 logs kappy`
+   - Monitor status: `pm2 status`
+
 ## ✨ Features
 
 - **Authentication System**
@@ -56,10 +98,11 @@ Visit [http://localhost:3000](http://localhost:3000) to view the application.
   - Animated transitions
   - Dark mode support
 
-- **Performance**
-  - Server-side rendering
-  - Image optimization
-  - Code splitting
+- **Cloud Infrastructure**
+  - AWS EC2 deployment
+  - RDS MySQL database
+  - Automated setup scripts
+  - Data migration tools
 
 ## 🏗️ Project Structure
 
@@ -69,8 +112,8 @@ CloudProj1/
 ├── pages/              # Next.js pages and API routes
 ├── public/             # Static assets
 ├── utils/              # Utility functions
-├── data/              # JSON data and mock APIs
-├── scripts/           # Utility scripts
+├── data/              # JSON data and backups
+├── scripts/           # Deployment and migration scripts
 └── docs/              # Documentation
 ```
 
@@ -105,53 +148,89 @@ npm run lint
 Create a `.env.local` file with the following variables:
 
 ```env
+# App Configuration
+NODE_ENV=production
+PORT=3000
+
+# Database Configuration (AWS RDS)
+DB_HOST=your-rds-endpoint.region.rds.amazonaws.com
+DB_USER=your_rds_username
+DB_PASSWORD=your_rds_password
+DB_NAME=kappy_db
+
 # Authentication
-NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_URL=http://your_ec2_public_ip:3000
 NEXTAUTH_SECRET=your_nextauth_secret
 
-# Database
-DATABASE_URL=your_database_url
-
-# API Keys
-NEXT_PUBLIC_API_URL=your_api_url
+# API Configuration
+NEXT_PUBLIC_API_URL=http://your_ec2_public_ip:3000/api
 ```
 
-## 🎯 Roadmap
+## 🎯 Project Tasks & Progress
 
-- [ ] Phase 1: Design & Planning
-  - [ ] Requirements analysis and documentation
-  - [ ] Cloud service model selection (IaaS/PaaS/FaaS)
-  - [ ] Cloud deployment strategy definition
-  - [ ] Storage & database architecture design
-  - [ ] High availability and security planning
+- [🔄] Phase 1: Design & Planning (Initial project setup and architecture planning)
+  - [x] Requirements Analysis
+    - [x] Define functional & non-functional requirements (Core features and system constraints)
+    - [x] Document user base and storage needs (User profiles and data requirements)
+    - [x] Establish project scope and constraints (Project boundaries and limitations)
+  - [ ] Cloud Service Model Selection
+    - [ ] IaaS selection & justification (AWS infrastructure choice rationale)
+    - [ ] Technical & business implications analysis (Cost and technical impact assessment)
+  - [ ] Cloud Deployment Strategy
+    - [ ] Public cloud deployment model selection (AWS public cloud implementation)
+    - [ ] Justification documentation (Reasoning for cloud choices)
+  - [ ] Cloud Storage and Database Architecture
+    - [ ] RDS & S3 storage solution design (Database and file storage planning)
+    - [ ] Risk mitigation strategies (Data backup and recovery plans)
+  - [ ] High Availability and Security Planning
+    - [ ] Load balancing architecture (Traffic distribution design)
+    - [ ] Security & encryption planning (Data protection measures)
 
-- [ ] Phase 2: AWS Infrastructure Setup
-  - [ ] VPC and networking configuration
-  - [ ] EC2 instances deployment
-  - [ ] Security groups and IAM setup
-  - [ ] Load balancer configuration
-  - [ ] Auto-scaling implementation
+- [🔄] Phase 2: Implementation (Active development phase)
+  - [ ] AWS Infrastructure Setup
+    - [ ] EC2 instance configuration (Server setup and configuration)
+    - [ ] Security groups setup (Network security rules)
+    - [ ] VPC networking configuration (Private network setup)
+    - [ ] IAM roles and policies (Access control implementation)
+  - [x] Web Application Development
+    - [x] Next.js application setup (Frontend framework implementation)
+    - [x] UI/UX implementation (User interface design)
+    - [x] Authentication system (User login and security)
+    - [x] Product management (Inventory and product features)
+  - [🔄] Database Implementation
+    - [x] MySQL schema design (Database structure planning)
+    - [x] Migration scripts (Data transfer tools)
+    - [🔄] Data seeding (Initial data population)
+    - [ ] Backup procedures (Data recovery planning)
+  - [🔄] Deployment Configuration
+    - [x] Environment setup (Development and production environments)
+    - [x] Deployment scripts (Automated deployment tools)
+    - [🔄] SSL/TLS configuration (Security certificate setup)
+    - [ ] Monitoring setup (System health tracking)
 
-- [ ] Phase 3: Web Application Development
-  - [ ] Basic e-commerce functionality
-  - [ ] Server-side implementation (PHP/Python)
-  - [ ] Database integration
-  - [ ] User authentication system
-  - [ ] Shopping cart functionality
+- [ ] Phase 3: Testing & Optimization (Quality assurance and performance tuning)
+  - [🔄] Performance Testing
+    - [🔄] Load testing with JMeter (System capacity testing)
+    - [ ] Stress testing (System limits evaluation)
+    - [ ] Performance optimization (Speed and efficiency improvements)
+  - [ ] Security Assessment
+    - [ ] Vulnerability scanning (Security weakness detection)
+    - [ ] Security hardening (System protection enhancement)
+  - [🔄] Documentation
+    - [x] API documentation (Interface specifications)
+    - [x] Deployment guides (Installation instructions)
+    - [🔄] User manuals (End-user guides)
+    - [ ] System architecture docs (Technical documentation)
+  - [ ] Final Review
+    - [ ] Code review (Code quality assessment)
+    - [ ] Performance metrics analysis (System performance evaluation)
+    - [ ] Cost optimization (Resource usage efficiency)
+    - [ ] Scalability assessment (Growth capacity evaluation)
 
-- [ ] Phase 4: Cloud Deployment & Testing
-  - [ ] Application deployment to AWS
-  - [ ] Database deployment and configuration
-  - [ ] Load testing with Apache JMeter
-  - [ ] Performance optimization
-  - [ ] Failover testing
-
-- [ ] Phase 5: Documentation & Analysis
-  - [ ] ChatGPT utilization documentation
-  - [ ] Cost analysis report
-  - [ ] Performance evaluation
-  - [ ] Scalability assessment
-  - [ ] Final project documentation
+Legend:
+- [x] Completed
+- [🔄] In Progress
+- [ ] Not Started
 
 ## 📚 Documentation
 

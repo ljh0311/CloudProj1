@@ -1,52 +1,69 @@
-import { 
-    Box, 
-    Container, 
-    Heading, 
-    SimpleGrid, 
-    Input, 
-    Select, 
-    HStack, 
-    VStack,
-    Text,
+import {
+    Box,
+    Container,
+    SimpleGrid,
     Image,
+    VStack,
+    HStack,
+    Heading,
+    Text,
     Button,
-    Badge,
-    useColorModeValue,
-    Flex,
-    Modal,
-    ModalOverlay,
-    ModalContent,
-    ModalHeader,
-    ModalFooter,
-    ModalBody,
-    ModalCloseButton,
-    FormControl,
-    FormLabel,
-    Textarea,
-    useDisclosure,
     useToast,
-    Spinner,
-    Center
+    Tooltip
 } from '@chakra-ui/react';
-import Head from 'next/head';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import AnimatedBackground from '../components/AnimatedBackground';
 import { AddIcon } from '@chakra-ui/icons';
+import NextLink from 'next/link';
+import Head from 'next/head';
+import { useDisclosure } from '@chakra-ui/react';
+import { Spinner, Center } from '@chakra-ui/react';
+import { Input, Select } from '@chakra-ui/react';
+import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton } from '@chakra-ui/react';
+import { FormControl, FormLabel, Textarea } from '@chakra-ui/react';
+import { useCart } from '../components/CartContext';
+import productsData from '../data/products.json';
 
 const ProductCard = ({ product }) => {
     const router = useRouter();
+    const toast = useToast();
+    const { addToCart } = useCart();
+
+    const getSizeAvailabilityColor = (stock) => {
+        if (stock > 10) return "green";
+        if (stock > 0) return "yellow";
+        return "red";
+    };
+
+    const getSizeAvailabilityText = (stock) => {
+        if (stock === 0) return "Out of stock";
+        if (stock <= 5) return `Only ${stock} left!`;
+        return `${stock} available`;
+    };
+
+    const handleAddToCart = (e, size) => {
+        e.stopPropagation();
+        addToCart(product, size);
+        toast({
+            title: "Added to cart",
+            description: `${product.name} (Size ${size}) added to your cart`,
+            status: "success",
+            duration: 2000,
+            isClosable: true,
+        });
+    };
 
     return (
-        <Box 
+        <Box
             as="article"
-            borderWidth="1px" 
-            borderColor="whiteAlpha.200" 
-            borderRadius="lg" 
+            borderWidth="1px"
+            borderColor="whiteAlpha.200"
+            borderRadius="lg"
             overflow="hidden"
             transition="all 0.3s"
-            _hover={{ 
+            _hover={{
                 transform: 'translateY(-5px)',
                 boxShadow: 'xl',
                 borderColor: 'rgba(255, 255, 255, 0.4)'
@@ -60,32 +77,53 @@ const ProductCard = ({ product }) => {
                 src={product.image}
                 alt={product.name}
                 width="100%"
-                height="auto"
+                height="300px"
                 objectFit="cover"
             />
-            <VStack p={4} align="start" spacing={2}>
-                <Heading size="md" color="white">
+
+            <VStack p={4} align="start" spacing={3}>
+                <Heading size="md" color="white" noOfLines={2}>
                     {product.name}
                 </Heading>
-                <HStack spacing={2}>
-                    <Badge colorScheme="green">{product.condition}</Badge>
-                    <Badge colorScheme="purple">Size {product.size}</Badge>
+
+                <HStack justify="space-between" width="100%">
+                    <Text color="whiteAlpha.800" fontSize="md">
+                        {product.material}
+                    </Text>
+                    <Text color="white" fontSize="xl" fontWeight="bold">
+                        ${product.price.toFixed(2)}
+                    </Text>
                 </HStack>
-                <Text color="white" fontSize="xl" fontWeight="bold">
-                    ${product.price.toFixed(2)}
-                </Text>
-                <Button
-                    width="100%"
-                    bg="white"
-                    color="black"
-                    _hover={{ bg: 'rgba(255, 255, 255, 0.8)' }}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        // Add to cart logic here
-                    }}
-                >
-                    Add to Cart
-                </Button>
+
+                <Box width="100%">
+                    <Text color="whiteAlpha.800" fontSize="sm" mb={2}>
+                        Available Sizes:
+                    </Text>
+                    <HStack spacing={2}>
+                        {[
+                            { label: 'S', stock: product.size_s_stock || 0 },
+                            { label: 'M', stock: product.size_m_stock || 0 },
+                            { label: 'L', stock: product.size_l_stock || 0 }
+                        ].map(({ label, stock }) => (
+                            <Button
+                                key={label}
+                                size="sm"
+                                variant="outline"
+                                colorScheme={getSizeAvailabilityColor(stock)}
+                                isDisabled={stock === 0}
+                                onClick={(e) => handleAddToCart(e, label)}
+                                _hover={{
+                                    transform: 'translateY(-2px)',
+                                    bg: 'whiteAlpha.200'
+                                }}
+                            >
+                                <Tooltip label={getSizeAvailabilityText(stock)} hasArrow>
+                                    <Text>{label}</Text>
+                                </Tooltip>
+                            </Button>
+                        ))}
+                    </HStack>
+                </Box>
             </VStack>
         </Box>
     );
@@ -128,7 +166,7 @@ const AddProductModal = ({ isOpen, onClose }) => {
             }
 
             const newProduct = await response.json();
-            
+
             toast({
                 title: "Product added successfully",
                 status: "success",
@@ -183,7 +221,7 @@ const AddProductModal = ({ isOpen, onClose }) => {
                                 _focus={{ bg: 'whiteAlpha.200', boxShadow: 'none' }}
                             />
                         </FormControl>
-                        
+
                         <FormControl>
                             <FormLabel color="white">Price</FormLabel>
                             <Input
@@ -313,37 +351,35 @@ const AddProductModal = ({ isOpen, onClose }) => {
 };
 
 export default function Shop() {
-    const [products, setProducts] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [products, setProducts] = useState(productsData.products || []);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('');
     const [sizeFilter, setSizeFilter] = useState('');
     const [sortBy, setSortBy] = useState('');
     const { isOpen, onOpen, onClose } = useDisclosure();
-    
+
     // TODO: Replace with actual admin check
     const isAdmin = true; // Temporary for testing
 
-    useEffect(() => {
-        const fetchProducts = async () => {
-            try {
-                const response = await fetch('/api/products');
-                if (!response.ok) {
-                    throw new Error('Failed to fetch products');
-                }
-                const data = await response.json();
-                setProducts(data);
-            } catch (err) {
-                setError('Failed to load products');
-                console.error('Error loading products:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchProducts();
-    }, []);
+    // Filter and sort products based on user selections
+    const filteredProducts = products
+        .filter(product => {
+            const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
+            const matchesCategory = !categoryFilter || product.category === categoryFilter;
+            const matchesSize = !sizeFilter ||
+                (sizeFilter === 'S' && product.size_s_stock > 0) ||
+                (sizeFilter === 'M' && product.size_m_stock > 0) ||
+                (sizeFilter === 'L' && product.size_l_stock > 0);
+            return matchesSearch && matchesCategory && matchesSize;
+        })
+        .sort((a, b) => {
+            if (sortBy === 'price-asc') return a.price - b.price;
+            if (sortBy === 'price-desc') return b.price - a.price;
+            if (sortBy === 'name') return a.name.localeCompare(b.name);
+            return 0;
+        });
 
     if (loading) {
         return (
@@ -367,21 +403,6 @@ export default function Shop() {
         );
     }
 
-    // Filter and sort products based on user selections
-    const filteredProducts = products
-        .filter(product => {
-            const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
-            const matchesCategory = !categoryFilter || product.category === categoryFilter;
-            const matchesSize = !sizeFilter || product.size === sizeFilter;
-            return matchesSearch && matchesCategory && matchesSize;
-        })
-        .sort((a, b) => {
-            if (sortBy === 'price-asc') return a.price - b.price;
-            if (sortBy === 'price-desc') return b.price - a.price;
-            if (sortBy === 'name') return a.name.localeCompare(b.name);
-            return 0;
-        });
-
     return (
         <>
             <Head>
@@ -391,7 +412,7 @@ export default function Shop() {
 
             <Box position="relative" minH="100vh" bg="black" overflow="hidden">
                 <AnimatedBackground />
-                
+
                 <Box position="relative" zIndex={1}>
                     <Navbar />
 
@@ -399,17 +420,17 @@ export default function Shop() {
                         <VStack spacing={8} align="stretch">
                             {/* Header */}
                             <Box textAlign="center" mb={8}>
-                                <Heading 
-                                    as="h1" 
-                                    size="2xl" 
+                                <Heading
+                                    as="h1"
+                                    size="2xl"
                                     mb={4}
                                     bgGradient="linear(to-r, white, whiteAlpha.800)"
                                     bgClip="text"
                                 >
                                     Vintage T-Shirts
                                 </Heading>
-                                <Text 
-                                    fontSize="lg" 
+                                <Text
+                                    fontSize="lg"
                                     color="whiteAlpha.900"
                                     textShadow="0 2px 4px rgba(0,0,0,0.4)"
                                 >
@@ -432,9 +453,9 @@ export default function Shop() {
                             )}
 
                             {/* Filters and Search */}
-                            <HStack 
-                                spacing={4} 
-                                wrap="wrap" 
+                            <HStack
+                                spacing={4}
+                                wrap="wrap"
                                 justify="space-between"
                                 bg="rgba(255, 255, 255, 0.05)"
                                 backdropFilter="blur(10px)"
@@ -483,7 +504,6 @@ export default function Shop() {
                                         <option value="S">S</option>
                                         <option value="M">M</option>
                                         <option value="L">L</option>
-                                        <option value="XL">XL</option>
                                     </Select>
                                     <Select
                                         value={sortBy}
@@ -503,8 +523,8 @@ export default function Shop() {
                             </HStack>
 
                             {/* Product Grid */}
-                            <SimpleGrid 
-                                columns={{ base: 1, sm: 2, md: 3, lg: 4 }} 
+                            <SimpleGrid
+                                columns={{ base: 1, sm: 2, md: 3, lg: 4 }}
                                 spacing={6}
                                 py={8}
                             >

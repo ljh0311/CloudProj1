@@ -12,12 +12,15 @@ import {
   LinkOverlay,
   Container,
   HStack,
-  Divider
+  Divider,
+  Badge
 } from '@chakra-ui/react';
 import { HamburgerIcon, CloseIcon } from '@chakra-ui/icons';
+import { FaShoppingCart } from 'react-icons/fa';
 import Logo from './Logo';
 import NextLink from 'next/link';
 import { useState } from 'react';
+import { useCart } from './CartContext';
 
 const NavLink = ({ href, children }) => (
   <LinkBox>
@@ -45,6 +48,8 @@ const NavLink = ({ href, children }) => (
 export default function Navbar() {
   const { isOpen, onToggle } = useDisclosure();
   const [isLogoHovered, setIsLogoHovered] = useState(false);
+  const { getCartCount } = useCart();
+  const cartItemCount = getCartCount();
 
   return (
     <Box 
@@ -110,8 +115,35 @@ export default function Navbar() {
             spacing={4}
             display={{ base: 'none', md: 'flex' }}
           >
-            <NavLink href="/portfolio">Development Progress</NavLink>
+            <NavLink href="/progress">Development Progress</NavLink>
             <Divider orientation="vertical" height="20px" borderColor="rgba(255, 255, 255, 0.2)" />
+            
+            {/* Cart Button */}
+            <Button
+              as={NextLink}
+              href="/cart"
+              variant="ghost"
+              color="white"
+              leftIcon={<FaShoppingCart />}
+              _hover={{ bg: 'rgba(255, 255, 255, 0.1)' }}
+              position="relative"
+              pr={cartItemCount > 0 ? 8 : 4}
+            >
+              Cart
+              {cartItemCount > 0 && (
+                <Badge
+                  position="absolute"
+                  top={1}
+                  right={1}
+                  colorScheme="red"
+                  borderRadius="full"
+                  px={2}
+                >
+                  {cartItemCount}
+                </Badge>
+              )}
+            </Button>
+
             <Button
               as={NextLink}
               href="/auth"
@@ -145,8 +177,9 @@ export default function Navbar() {
             <NavLink href="/">Home</NavLink>
             <NavLink href="/shop">Shop</NavLink>
             <NavLink href="/about">About</NavLink>
+            <NavLink href="/cart">Cart {cartItemCount > 0 && `(${cartItemCount})`}</NavLink>
             <Divider borderColor="rgba(255, 255, 255, 0.1)" />
-            <NavLink href="/portfolio">Development Progress</NavLink>
+            <NavLink href="/progress">Development Progress</NavLink>
             <NavLink href="/auth?mode=signup">Sign Up</NavLink>
           </Stack>
         </Collapse>

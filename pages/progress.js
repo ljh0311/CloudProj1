@@ -15,7 +15,7 @@ import {
     StatNumber,
     StatHelpText,
     Icon,
-    Grid,
+    Grid
 } from '@chakra-ui/react';
 import Head from 'next/head';
 import { motion } from 'framer-motion';
@@ -46,8 +46,11 @@ const initialFeatures = [
             "Product grid ✓",
             "Search functionality ✓",
             "Filters ✓",
+            "Size availability display ✓",
+            "Add to cart buttons ✓",
+            "Toast notifications ✓",
             "Pending: Backend integration",
-            "Pending: Shopping cart"
+            "Pending: Persistent cart storage"
         ]
     },
     {
@@ -56,9 +59,26 @@ const initialFeatures = [
         details: [
             "Product display ✓",
             "Image gallery ✓",
-            "Pending: Size selection",
-            "Pending: Add to cart",
+            "Size selection ✓",
+            "Stock tracking ✓",
+            "Add to cart ✓",
+            "Toast notifications ✓",
             "Pending: Reviews section"
+        ]
+    },
+    {
+        feature: "Shopping Cart",
+        description: "Cart functionality and checkout process",
+        details: [
+            "Cart UI design ✓",
+            "Add/Remove items ✓",
+            "Price calculation ✓",
+            "Local storage persistence ✓",
+            "Cart count in navbar ✓",
+            "Quantity management ✓",
+            "Pending: Checkout process",
+            "Pending: Payment integration",
+            "Pending: Database integration"
         ]
     },
     {
@@ -68,30 +88,23 @@ const initialFeatures = [
             "Login form ✓",
             "Form validation ✓",
             "Registration form ✓",
+            "Session management ✓",
             "Pending: Password recovery",
-            "Pending: Social login"
+            "Pending: Social login",
+            "Pending: User profiles"
         ]
     },
     {
-        feature: "About Page",
-        description: "Brand story and mission statement",
+        feature: "Database & Storage",
+        description: "Data persistence and management",
         details: [
-            "Brand story ✓",
-            "Mission statement ✓",
-            "Values section ✓",
-            "Animations ✓",
-            "Pending: Content review"
-        ]
-    },
-    {
-        feature: "Shopping Cart",
-        description: "Cart functionality and checkout process",
-        details: [
-            "Cart UI design ✓",
-            "Pending: Add/Remove items",
-            "Pending: Price calculation",
-            "Pending: Checkout process",
-            "Pending: Payment integration"
+            "Schema design ✓",
+            "Migration scripts ✓",
+            "Products JSON structure ✓",
+            "Local storage implementation ✓",
+            "Pending: RDS setup",
+            "Pending: S3 integration",
+            "Pending: Backup system"
         ]
     }
 ];
@@ -193,9 +206,9 @@ export default function DevelopmentProgress() {
                                         bg="rgba(0, 0, 0, 0.6)"
                                         backdropFilter="blur(10px)"
                                         borderRadius="lg"
-                                            p={6}
-                                            borderWidth="1px"
-                                            borderColor="whiteAlpha.200"
+                                        p={6}
+                                        borderWidth="1px"
+                                        borderColor="whiteAlpha.200"
                                     >
                                         <HStack spacing={3} mb={2}>
                                             <Icon as={FaCheckCircle} color="green.400" w={6} h={6} />
@@ -210,12 +223,12 @@ export default function DevelopmentProgress() {
                                     </Stat>
 
                                     <Stat
-                                            bg="rgba(0, 0, 0, 0.6)"
-                                            backdropFilter="blur(10px)"
+                                        bg="rgba(0, 0, 0, 0.6)"
+                                        backdropFilter="blur(10px)"
                                         borderRadius="lg"
-                                            p={6}
-                                            borderWidth="1px"
-                                            borderColor="whiteAlpha.200"
+                                        p={6}
+                                        borderWidth="1px"
+                                        borderColor="whiteAlpha.200"
                                     >
                                         <HStack spacing={3} mb={2}>
                                             <Icon as={FaTools} color="yellow.400" w={6} h={6} />
@@ -230,8 +243,8 @@ export default function DevelopmentProgress() {
                                     </Stat>
 
                                     <Stat
-                                            bg="rgba(0, 0, 0, 0.6)"
-                                            backdropFilter="blur(10px)"
+                                        bg="rgba(0, 0, 0, 0.6)"
+                                        backdropFilter="blur(10px)"
                                         borderRadius="lg"
                                         p={6}
                                         borderWidth="1px"
@@ -243,33 +256,33 @@ export default function DevelopmentProgress() {
                                         </HStack>
                                         <StatNumber color="white" fontSize="3xl">
                                             {Math.ceil((100 - summary.averageProgress) / 20)} weeks
-                                                </StatNumber>
+                                        </StatNumber>
                                         <StatHelpText color="whiteAlpha.800">
                                             Until completion
-                                                </StatHelpText>
-                                            </Stat>
+                                        </StatHelpText>
+                                    </Stat>
                                 </Grid>
 
                                 <Divider borderColor="whiteAlpha.200" mb={12} />
-                                        </MotionBox>
+                            </MotionBox>
 
                             {/* Progress Grid */}
                             <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={8}>
                                 {implementationProgress.map((item, index) => (
-                                        <MotionBox
-                                            key={index}
+                                    <MotionBox
+                                        key={index}
                                         p={8}
-                                            borderWidth="1px"
-                                            borderColor="whiteAlpha.200"
-                                            borderRadius="lg"
-                                            bg="rgba(0, 0, 0, 0.6)"
-                                            backdropFilter="blur(10px)"
-                                            initial={{ opacity: 0, y: 20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ duration: 0.5, delay: index * 0.1 }}
-                                            whileHover={{ 
-                                                y: -5, 
-                                                boxShadow: "0 20px 30px -10px rgba(0,0,0,0.4)",
+                                        borderWidth="1px"
+                                        borderColor="whiteAlpha.200"
+                                        borderRadius="lg"
+                                        bg="rgba(0, 0, 0, 0.6)"
+                                        backdropFilter="blur(10px)"
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ duration: 0.5, delay: index * 0.1 }}
+                                        whileHover={{ 
+                                            y: -5, 
+                                            boxShadow: "0 20px 30px -10px rgba(0,0,0,0.4)",
                                             borderColor: "rgba(255, 255, 255, 0.4)"
                                         }}
                                     >
@@ -294,7 +307,7 @@ export default function DevelopmentProgress() {
                                             
                                             <Text color="whiteAlpha.800" fontSize="md">
                                                 {item.description}
-                                                </Text>
+                                            </Text>
 
                                             <Box>
                                                 <Tooltip 
@@ -336,14 +349,14 @@ export default function DevelopmentProgress() {
                                                             fontSize="sm"
                                                         >
                                                             {detail.replace('✓', '').replace('Pending: ', '')}
-                                                    </Text>
+                                                        </Text>
                                                     </HStack>
                                                 ))}
                                             </VStack>
                                         </VStack>
-                                        </MotionBox>
-                                    ))}
-                                </SimpleGrid>
+                                    </MotionBox>
+                                ))}
+                            </SimpleGrid>
                         </VStack>
                     </Container>
                 </Box>

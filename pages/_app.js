@@ -3,6 +3,7 @@ import { useRouter } from 'next/router'
 import { useEffect } from 'react'
 import PageTransition from '../components/PageTransition'
 import { SessionProvider } from 'next-auth/react'
+import { CartProvider } from '../components/CartContext'
 
 function MyApp({ Component, pageProps: { session, ...pageProps } }) {
     const router = useRouter()
@@ -26,9 +27,11 @@ function MyApp({ Component, pageProps: { session, ...pageProps } }) {
     return (
         <SessionProvider session={session}>
             <ChakraProvider>
-                <PageTransition>
-                    <Component {...pageProps} />
-                </PageTransition>
+                <CartProvider>
+                    <PageTransition>
+                        <Component {...pageProps} />
+                    </PageTransition>
+                </CartProvider>
             </ChakraProvider>
         </SessionProvider>
     )

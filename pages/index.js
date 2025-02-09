@@ -33,6 +33,9 @@ export default function Home() {
                             color="black"
                             _hover={{ bg: 'whiteAlpha.800' }}
                             px={8}
+                            onClick={() => {
+                                window.location.href = '/shop';
+                            }}
                         >
                             Shop Now
                         </Button>

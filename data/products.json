@@ -2,116 +2,157 @@
     "products": [
         {
             "id": 1,
+            "name": "Vintage Nike Sportswear Tee",
+            "price": 45.99,
+            "category": "Graphic Tees",
+            "image": "https://placehold.co/400x500",
+            "description": "Classic Nike sportswear tee from the 90s featuring iconic swoosh graphic. Perfect vintage condition.",
+            "material": "100% Cotton",
+            "size_s_stock": 20,
+            "size_m_stock": 20,
+            "size_l_stock": 20,
+            "createdAt": "2024-03-15T12:00:00Z",
+            "updatedAt": "2024-03-15T12:00:00Z"
+        },
+        {
+            "id": 2,
+            "name": "90s Band Tour T-Shirt",
+            "price": 55.00,
+            "category": "Band Tees",
+            "image": "https://placehold.co/400x500",
+            "description": "Authentic vintage band tour t-shirt with original graphics. Perfectly worn-in fabric.",
+            "material": "100% Cotton",
+            "size_s_stock": 20,
+            "size_m_stock": 20,
+            "size_l_stock": 20,
+            "createdAt": "2024-03-15T12:00:00Z",
+            "updatedAt": "2024-03-15T12:00:00Z"
+        },
+        {
+            "id": 3,
+            "name": "Retro Gaming T-Shirt",
+            "price": 42.00,
+            "category": "Graphic Tees",
+            "image": "https://placehold.co/400x500",
+            "description": "Vintage gaming t-shirt featuring classic arcade graphics. Soft, comfortable fabric.",
+            "material": "Cotton Blend",
+            "size_s_stock": 20,
+            "size_m_stock": 20,
+            "size_l_stock": 20,
+            "createdAt": "2024-03-15T12:00:00Z",
+            "updatedAt": "2024-03-15T12:00:00Z"
+        },
+        {
+            "id": 4,
+            "name": "Minimalist Essential Tee",
+            "price": 35.00,
+            "category": "Basic Tees",
+            "image": "https://placehold.co/400x500",
+            "description": "Classic vintage basic tee in a timeless cut. Perfect for everyday wear.",
+            "material": "100% Cotton",
+            "size_s_stock": 20,
+            "size_m_stock": 20,
+            "size_l_stock": 20,
+            "createdAt": "2024-03-15T12:00:00Z",
+            "updatedAt": "2024-03-15T12:00:00Z"
+        },
+        {
+            "id": 5,
             "name": "Vintage Nike Basketball Tee",
             "price": 48.99,
             "category": "Sports",
             "image": "/images/demoProduct.jpg",
-            "condition": "Very Good",
-            "size": "L",
             "description": "Classic Nike basketball t-shirt from the 90s. Features iconic swoosh and retro graphics.",
             "material": "100% Cotton",
+            "size_s_stock": 15,
+            "size_m_stock": 10,
+            "size_l_stock": 3,
             "createdAt": "2024-03-15T12:00:00Z",
-            "updatedAt": "2024-03-15T12:00:00Z",
-            "stock": 3
+            "updatedAt": "2024-03-15T12:00:00Z"
         },
         {
-            "id": 2,
+            "id": 6,
             "name": "Metallica World Tour '89 Tee",
             "price": 89.99,
             "category": "Band Tees",
             "image": "/images/demoProduct.jpg",
-            "condition": "Good",
-            "size": "M",
             "description": "Authentic Metallica tour t-shirt from their '89 world tour. Distressed vintage look.",
             "material": "100% Cotton",
+            "size_s_stock": 5,
+            "size_m_stock": 8,
+            "size_l_stock": 2,
             "createdAt": "2024-03-15T12:00:00Z",
-            "updatedAt": "2024-03-15T12:00:00Z",
-            "stock": 1
+            "updatedAt": "2024-03-15T12:00:00Z"
         },
         {
-            "id": 3,
+            "id": 7,
             "name": "Dragon Ball Z Graphic Tee",
             "price": 52.99,
             "category": "Graphic Tees",
             "image": "/images/demoProduct.jpg",
-            "condition": "Excellent",
-            "size": "M",
             "description": "Vintage Dragon Ball Z t-shirt featuring Goku. Vibrant colors, minimal wear.",
             "material": "Cotton Blend",
+            "size_s_stock": 20,
+            "size_m_stock": 20,
+            "size_l_stock": 20,
             "createdAt": "2024-03-15T12:00:00Z",
-            "updatedAt": "2024-03-15T12:00:00Z",
-            "stock": 2
+            "updatedAt": "2024-03-15T12:00:00Z"
         },
         {
-            "id": 4,
+            "id": 8,
             "name": "Nirvana Smiley Face Tee",
             "price": 75.99,
             "category": "Band Tees",
             "image": "/images/demoProduct.jpg",
-            "condition": "Very Good",
-            "size": "L",
             "description": "Classic Nirvana smiley face t-shirt. Authentic 90s grunge era piece.",
             "material": "100% Cotton",
             "createdAt": "2024-03-15T12:00:00Z",
-            "updatedAt": "2024-03-15T12:00:00Z",
-            "stock": 1
+            "updatedAt": "2024-03-15T12:00:00Z"
         },
         {
-            "id": 5,
+            "id": 9,
             "name": "Street Fighter II Arcade Tee",
             "price": 64.99,
             "category": "Graphic Tees",
             "image": "/images/demoProduct.jpg",
-            "condition": "Good",
-            "size": "XL",
             "description": "Vintage Street Fighter II arcade t-shirt. Features classic character artwork.",
             "material": "Cotton Blend",
             "createdAt": "2024-03-15T12:00:00Z",
-            "updatedAt": "2024-03-15T12:00:00Z",
-            "stock": 2
+            "updatedAt": "2024-03-15T12:00:00Z"
         },
         {
-            "id": 6,
+            "id": 10,
             "name": "Lakers Championship '91 Tee",
             "price": 82.99,
             "category": "Sports",
             "image": "/images/demoProduct.jpg",
-            "condition": "Good",
-            "size": "L",
             "description": "LA Lakers 1991 Championship commemorative t-shirt. Rare collector's item.",
             "material": "Cotton/Polyester Blend",
             "createdAt": "2024-03-15T12:00:00Z",
-            "updatedAt": "2024-03-15T12:00:00Z",
-            "stock": 1
+            "updatedAt": "2024-03-15T12:00:00Z"
         },
         {
-            "id": 7,
+            "id": 11,
             "name": "Sonic the Hedgehog Tee",
             "price": 45.99,
             "category": "Graphic Tees",
             "image": "/images/demoProduct.jpg",
-            "condition": "Very Good",
-            "size": "S",
             "description": "Vintage Sega Sonic the Hedgehog t-shirt from the early 90s. Bright graphics.",
             "material": "100% Cotton",
             "createdAt": "2024-03-15T12:00:00Z",
-            "updatedAt": "2024-03-15T12:00:00Z",
-            "stock": 3
+            "updatedAt": "2024-03-15T12:00:00Z"
         },
         {
-            "id": 8,
+            "id": 12,
             "name": "The Rolling Stones Tour Tee",
             "price": 95.99,
             "category": "Band Tees",
             "image": "/images/demoProduct.jpg",
-            "condition": "Excellent",
-            "size": "M",
             "description": "Original Rolling Stones tour t-shirt. Features iconic lips logo design.",
             "material": "100% Cotton",
             "createdAt": "2024-03-15T12:00:00Z",
-            "updatedAt": "2024-03-15T12:00:00Z",
-            "stock": 1
+            "updatedAt": "2024-03-15T12:00:00Z"
         }
     ],
-    "lastId": 8
-} 
+    "lastId": 12
+}

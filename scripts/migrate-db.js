@@ -61,15 +61,34 @@ async function createTables(connection) {
       price DECIMAL(10, 2) NOT NULL,
       category VARCHAR(100),
       image_url VARCHAR(255),
-      condition_status VARCHAR(50),
-      size VARCHAR(20),
+      size_s_stock INT DEFAULT 20,
+      size_m_stock INT DEFAULT 20,
+      size_l_stock INT DEFAULT 20,
       material VARCHAR(100),
-      stock_quantity INT DEFAULT 0,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )
   `);
   console.log('✓ Products table ready');
+
+  // Create shopping_cart table
+  await connection.execute(`
+    CREATE TABLE IF NOT EXISTS shopping_cart (
+      id VARCHAR(36) PRIMARY KEY,
+      user_id VARCHAR(36),
+      username VARCHAR(255),
+      product_id VARCHAR(36) NOT NULL,
+      size VARCHAR(2) NOT NULL,
+      quantity INT NOT NULL DEFAULT 1,
+      price_at_time DECIMAL(10, 2) NOT NULL,
+      payment_status ENUM('pending', 'completed') DEFAULT 'pending',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      FOREIGN KEY (product_id) REFERENCES products(id)
+    )
+  `);
+  console.log('✓ Shopping cart table ready');
 
   // Create orders table
   await connection.execute(`
@@ -177,7 +196,7 @@ async function migrateData() {
         await connection.execute(
           `INSERT INTO products (
             id, name, description, price, category, image_url,
-            condition_status, size, material, stock_quantity
+            size_s_stock, size_m_stock, size_l_stock, material
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             product.id,
@@ -186,10 +205,10 @@ async function migrateData() {
             product.price,
             product.category,
             product.image_url,
-            product.condition_status,
-            product.size,
+            product.size_s_stock || 20,
+            product.size_m_stock || 20,
+            product.size_l_stock || 20,
             product.material,
-            product.stock_quantity || 0,
           ]
         );
       } catch (error) {

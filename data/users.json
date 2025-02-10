@@ -4,7 +4,7 @@
             "id": 1,
             "email": "admin@kappy.com",
             "name": "Admin User",
-            "password": "admin",
+            "password": "$2a$12$icNVjROVDBPwHRCR7QDVPuOck21BZv1YWBRSAhwj3u/KABAsW6Rqi",
             "role": "admin",
             "createdAt": "2024-06-01T12:00:00Z",
             "updatedAt": "2024-06-01T12:00:00Z",
@@ -15,25 +15,35 @@
             "id": 2,
             "email": "john@gmail.com",
             "name": "John Doe",
-            "password": "john",
+            "password": "$2a$12$ltdox9.Im5qr3YFfvoXVXO82vxfO3VMv18.doFkutkIRWHoT8k4im",
             "role": "customer",
             "createdAt": "2024-03-15T09:32:14Z",
             "updatedAt": "2024-04-22T16:45:33Z",
             "orders": [],
-
             "cart": []
         },
         {
             "id": 3,
             "email": "jane@gmail.com",
             "name": "Jane Smith",
-            "password": "jane",
+            "password": "$2a$12$XN4yi9eFojaDCgTkQmvBX.vN.1Qhui585P/9hMk7n60PEnM/bImIO",
             "role": "customer",
             "createdAt": "2024-01-28T14:17:09Z",
             "updatedAt": "2024-05-12T11:23:47Z",
             "orders": [],
             "cart": []
+        },
+        {
+            "id": 4,
+            "name": "Kane",
+            "email": "kane@gmail.com",
+            "password": "$2a$12$QknDuE4Rr14ahjdXJtBb1.lFF69E0zS7x34idnVJEiudXjQytJh4S",
+            "role": "user",
+            "createdAt": "2025-02-10T07:53:48.553Z",
+            "updatedAt": "2025-02-10T07:53:48.553Z",
+            "orders": [],
+            "cart": []
         }
     ],
-    "lastId": 3
+    "lastId": 4
 }

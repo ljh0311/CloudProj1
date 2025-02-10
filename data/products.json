@@ -17,7 +17,7 @@
         {
             "id": 2,
             "name": "90s Band Tour T-Shirt",
-            "price": 55.00,
+            "price": 55,
             "category": "Band Tees",
             "image": "https://placehold.co/400x500",
             "description": "Authentic vintage band tour t-shirt with original graphics. Perfectly worn-in fabric.",
@@ -31,7 +31,7 @@
         {
             "id": 3,
             "name": "Retro Gaming T-Shirt",
-            "price": 42.00,
+            "price": 42,
             "category": "Graphic Tees",
             "image": "https://placehold.co/400x500",
             "description": "Vintage gaming t-shirt featuring classic arcade graphics. Soft, comfortable fabric.",
@@ -45,7 +45,7 @@
         {
             "id": 4,
             "name": "Minimalist Essential Tee",
-            "price": 35.00,
+            "price": 35,
             "category": "Basic Tees",
             "image": "https://placehold.co/400x500",
             "description": "Classic vintage basic tee in a timeless cut. Perfect for everyday wear.",
@@ -107,7 +107,10 @@
             "description": "Classic Nirvana smiley face t-shirt. Authentic 90s grunge era piece.",
             "material": "100% Cotton",
             "createdAt": "2024-03-15T12:00:00Z",
-            "updatedAt": "2024-03-15T12:00:00Z"
+            "updatedAt": "2025-02-10T07:17:11.425Z",
+            "size_s_stock": 9,
+            "size_m_stock": 0,
+            "size_l_stock": 0
         },
         {
             "id": 9,

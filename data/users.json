@@ -38,7 +38,7 @@
             "name": "Kane",
             "email": "kane@gmail.com",
             "password": "$2a$12$QknDuE4Rr14ahjdXJtBb1.lFF69E0zS7x34idnVJEiudXjQytJh4S",
-            "role": "user",
+            "role": "customer",
             "createdAt": "2025-02-10T07:53:48.553Z",
             "updatedAt": "2025-02-10T07:53:48.553Z",
             "orders": [],

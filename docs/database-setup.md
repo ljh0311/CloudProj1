@@ -237,4 +237,43 @@ SELECT id, COUNT(*) FROM products GROUP BY id HAVING COUNT(*) > 1;
 3. Limit IP addresses in security group
 4. Use SSL/TLS for database connections
 5. Regular security audits
-6. Monitor AWS CloudTrail for RDS events 
+6. Monitor AWS CloudTrail for RDS events
+
+## Database Schema
+
+### Users Table
+```sql
+CREATE TABLE users (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    role ENUM('admin', 'customer') DEFAULT 'customer',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+```
+
+### User Roles
+- `admin`: Full system access and management capabilities
+- `customer`: Standard user privileges (default role for new registrations)
+
+### JSON Data Structure
+```json
+{
+    "users": [
+        {
+            "id": number,
+            "email": string,
+            "name": string,
+            "password": string (bcrypt hashed),
+            "role": "admin" | "customer",
+            "createdAt": ISO timestamp,
+            "updatedAt": ISO timestamp,
+            "orders": array,
+            "cart": array
+        }
+    ],
+    "lastId": number
+}
+``` 

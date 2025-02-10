@@ -35,7 +35,7 @@ export default async function handler(req, res) {
             name,
             email: email.toLowerCase(),
             password: hashedPassword,
-            role: 'user',
+            role: 'customer',
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             orders: [],

@@ -89,13 +89,7 @@ export default function Cart() {
     const { cartItems, removeFromCart, updateQuantity, getCartTotal } = useCart();
 
     const handleCheckout = () => {
-        // Implement checkout logic
-        toast({
-            title: "Proceeding to checkout",
-            status: "info",
-            duration: 2000,
-            isClosable: true,
-        });
+        router.push('/checkout');
     };
 
     return (

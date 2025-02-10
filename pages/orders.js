@@ -29,7 +29,7 @@ import {
 } from '@chakra-ui/react';
 import { useSession } from 'next-auth/react';
 import Head from 'next/head';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Navbar from '../components/Navbar';
 import AnimatedBackground from '../components/AnimatedBackground';
 import { formatDate } from '../utils/dateFormatter';
@@ -165,48 +165,42 @@ const OrderCard = ({ order }) => {
 
 export default function Orders() {
     const { data: session } = useSession();
-    const [orders] = useState([
-        {
-            id: '1001',
-            status: 'completed',
-            createdAt: '2024-03-15T09:30:00Z',
-            totalAmount: 89.98,
-            items: [
-                {
-                    name: 'Vintage Nike Tee',
-                    size: 'M',
-                    quantity: 1,
-                    price: 45.99,
-                    image: 'https://placehold.co/100x100'
-                },
-                {
-                    name: 'Band Tour Shirt',
-                    size: 'L',
-                    quantity: 1,
-                    price: 43.99,
-                    image: 'https://placehold.co/100x100'
+    const [orders, setOrders] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchOrders = async () => {
+            try {
+                const response = await fetch('/api/orders/get-user-orders');
+                const data = await response.json();
+                if (response.ok) {
+                    setOrders(data.orders);
                 }
-            ]
-        },
-        {
-            id: '1002',
-            status: 'processing',
-            createdAt: '2024-03-14T15:45:00Z',
-            totalAmount: 55.99,
-            items: [
-                {
-                    name: 'Retro Gaming Tee',
-                    size: 'S',
-                    quantity: 1,
-                    price: 55.99,
-                    image: 'https://placehold.co/100x100'
-                }
-            ]
+            } catch (error) {
+                console.error('Error fetching orders:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (session) {
+            fetchOrders();
         }
-    ]);
+    }, [session]);
 
     if (!session) {
-        return null; // Protected by middleware, should redirect to login
+        return null; // Protected by middleware
+    }
+
+    if (loading) {
+        return (
+            <Box position="relative" minH="100vh" bg="black">
+                <Navbar />
+                <Container maxW="container.xl" py={12}>
+                    <Text color="white">Loading orders...</Text>
+                </Container>
+            </Box>
+        );
     }
 
     return (

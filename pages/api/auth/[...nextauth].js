@@ -11,7 +11,7 @@ export const authOptions = {
                 email: { label: "Email", type: "email", placeholder: "your@email.com" },
                 password: { label: "Password", type: "password" }
             },
-            async authorize(credentials) {
+            async authorize(credentials, req) {
                 try {
                     const { users } = await readJsonFile('users.json');
                     const user = users.find(u => u.email.toLowerCase() === credentials.email.toLowerCase());
@@ -39,7 +39,7 @@ export const authOptions = {
                     };
                 } catch (error) {
                     console.error('Auth error:', error);
-                    return null;
+                    throw new Error('Authentication failed');
                 }
             }
         })
@@ -49,6 +49,17 @@ export const authOptions = {
         maxAge: 30 * 24 * 60 * 60, // 30 days
         updateAge: 24 * 60 * 60, // 24 hours
     },
+    cookies: {
+        sessionToken: {
+            name: `next-auth.session-token`,
+            options: {
+                httpOnly: true,
+                sameSite: 'lax',
+                path: '/',
+                secure: process.env.NODE_ENV === 'production'
+            }
+        }
+    },
     callbacks: {
         async jwt({ token, user, trigger, session }) {
             if (user) {
@@ -57,7 +68,6 @@ export const authOptions = {
                 token.image = user.image;
             }
             
-            // Handle user updates
             if (trigger === "update" && session) {
                 token.name = session.name;
                 token.image = session.image;
@@ -77,10 +87,19 @@ export const authOptions = {
     pages: {
         signIn: '/auth',
         error: '/auth',
-        signOut: '/',
+        signOut: '/'
     },
     debug: process.env.NODE_ENV === 'development',
     secret: process.env.NEXTAUTH_SECRET,
+    useSecureCookies: process.env.NODE_ENV === 'production',
+    events: {
+        async signOut() {
+            // Cleanup any session-related data if needed
+        },
+        async error(error) {
+            console.error('NextAuth Error:', error);
+        }
+    }
 };
 
 export default NextAuth(authOptions); 

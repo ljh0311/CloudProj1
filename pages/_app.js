@@ -30,7 +30,13 @@ function MyApp({ Component, pageProps: { session, ...pageProps } }) {
     }, [router])
 
     return (
-        <SessionProvider session={session}>
+        <SessionProvider 
+            session={session}
+            refetchInterval={0}
+            refetchOnWindowFocus={false}
+            refetchWhenOffline={false}
+            baseUrl={process.env.NEXTAUTH_URL}
+        >
             <ChakraProvider>
                 <CartProvider>
                     <PageTransition>

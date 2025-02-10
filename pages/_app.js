@@ -1,12 +1,17 @@
 import { ChakraProvider } from '@chakra-ui/react'
 import { useRouter } from 'next/router'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import PageTransition from '../components/PageTransition'
 import { SessionProvider } from 'next-auth/react'
 import { CartProvider } from '../components/CartContext'
 
 function MyApp({ Component, pageProps: { session, ...pageProps } }) {
     const router = useRouter()
+    const [isClient, setIsClient] = useState(false)
+
+    useEffect(() => {
+        setIsClient(true)
+    }, [])
 
     useEffect(() => {
         // This ensures hydration matches
@@ -29,7 +34,7 @@ function MyApp({ Component, pageProps: { session, ...pageProps } }) {
             <ChakraProvider>
                 <CartProvider>
                     <PageTransition>
-                        <Component {...pageProps} />
+                        {isClient && <Component {...pageProps} />}
                     </PageTransition>
                 </CartProvider>
             </ChakraProvider>

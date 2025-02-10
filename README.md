@@ -260,4 +260,17 @@ Legend:
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+## 🔐 Authentication
+
+### User Roles
+- **Admin**: Full system access (`admin@kappy.com`)
+- **Customer**: Standard user privileges (default for new registrations)
+
+### Features
+- Secure password hashing with bcrypt
+- JWT-based session management
+- Role-based access control
+- Protected API routes
+- Automatic session renewal
+
 ---

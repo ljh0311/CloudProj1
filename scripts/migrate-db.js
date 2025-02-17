@@ -38,21 +38,23 @@ const dbConfig = {
 async function createTables(connection) {
   console.log('Creating/verifying database tables...');
 
-  // Create users table
+  // Create users table with updated role enum and additional fields
   await connection.execute(`
     CREATE TABLE IF NOT EXISTS users (
       id VARCHAR(36) PRIMARY KEY,
       email VARCHAR(255) UNIQUE NOT NULL,
       name VARCHAR(255),
       password VARCHAR(255),
-      role ENUM('user', 'admin') DEFAULT 'user',
+      role ENUM('customer', 'admin') DEFAULT 'customer',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      cart JSON DEFAULT (JSON_ARRAY()),
+      orders JSON DEFAULT (JSON_ARRAY())
     )
   `);
   console.log('✓ Users table ready');
 
-  // Create products table with extended fields
+  // Create products table with updated fields
   await connection.execute(`
     CREATE TABLE IF NOT EXISTS products (
       id VARCHAR(36) PRIMARY KEY,
@@ -60,7 +62,7 @@ async function createTables(connection) {
       description TEXT,
       price DECIMAL(10, 2) NOT NULL,
       category VARCHAR(100),
-      image_url VARCHAR(255),
+      image VARCHAR(255),
       size_s_stock INT DEFAULT 20,
       size_m_stock INT DEFAULT 20,
       size_l_stock INT DEFAULT 20,
@@ -71,53 +73,20 @@ async function createTables(connection) {
   `);
   console.log('✓ Products table ready');
 
-  // Create shopping_cart table
-  await connection.execute(`
-    CREATE TABLE IF NOT EXISTS shopping_cart (
-      id VARCHAR(36) PRIMARY KEY,
-      user_id VARCHAR(36),
-      username VARCHAR(255),
-      product_id VARCHAR(36) NOT NULL,
-      size VARCHAR(2) NOT NULL,
-      quantity INT NOT NULL DEFAULT 1,
-      price_at_time DECIMAL(10, 2) NOT NULL,
-      payment_status ENUM('pending', 'completed') DEFAULT 'pending',
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users(id),
-      FOREIGN KEY (product_id) REFERENCES products(id)
-    )
-  `);
-  console.log('✓ Shopping cart table ready');
-
-  // Create orders table
+  // Create orders table with updated structure
   await connection.execute(`
     CREATE TABLE IF NOT EXISTS orders (
       id VARCHAR(36) PRIMARY KEY,
       user_id VARCHAR(36),
       status VARCHAR(50) DEFAULT 'pending',
       total_amount DECIMAL(10, 2) NOT NULL,
+      items JSON NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id)
     )
   `);
   console.log('✓ Orders table ready');
-
-  // Create order_items table
-  await connection.execute(`
-    CREATE TABLE IF NOT EXISTS order_items (
-      id VARCHAR(36) PRIMARY KEY,
-      order_id VARCHAR(36),
-      product_id VARCHAR(36),
-      quantity INT NOT NULL,
-      price_at_time DECIMAL(10, 2) NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (order_id) REFERENCES orders(id),
-      FOREIGN KEY (product_id) REFERENCES products(id)
-    )
-  `);
-  console.log('✓ Order items table ready');
 }
 
 /**
@@ -164,20 +133,33 @@ async function migrateData() {
 
     // Read JSON files
     console.log('\nReading data files...');
-    const usersData = JSON.parse(
+    const { users } = JSON.parse(
       await fs.readFile(path.join(__dirname, '../data/users.json'), 'utf8')
     );
-    const productsData = JSON.parse(
+    const { products } = JSON.parse(
       await fs.readFile(path.join(__dirname, '../data/products.json'), 'utf8')
+    );
+    const { orders } = JSON.parse(
+      await fs.readFile(path.join(__dirname, '../data/orders.json'), 'utf8')
     );
 
     // Migrate users
     console.log('\nMigrating users...');
-    for (const user of usersData) {
+    for (const user of users) {
       try {
         await connection.execute(
-          'INSERT INTO users (id, email, name, password, role) VALUES (?, ?, ?, ?, ?)',
-          [user.id, user.email, user.name, user.password, user.role]
+          'INSERT INTO users (id, email, name, password, role, cart, orders, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          [
+            user.id,
+            user.email,
+            user.name,
+            user.password,
+            user.role,
+            JSON.stringify(user.cart || []),
+            JSON.stringify(user.orders || []),
+            user.createdAt || new Date().toISOString(),
+            user.updatedAt || new Date().toISOString()
+          ]
         );
       } catch (error) {
         if (error.code === 'ER_DUP_ENTRY') {
@@ -187,28 +169,31 @@ async function migrateData() {
         }
       }
     }
-    console.log(`✓ ${usersData.length} users processed`);
+    console.log(`✓ ${users.length} users processed`);
 
     // Migrate products
     console.log('\nMigrating products...');
-    for (const product of productsData) {
+    for (const product of products) {
       try {
         await connection.execute(
           `INSERT INTO products (
-            id, name, description, price, category, image_url,
-            size_s_stock, size_m_stock, size_l_stock, material
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            id, name, description, price, category, image,
+            size_s_stock, size_m_stock, size_l_stock, material,
+            created_at, updated_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             product.id,
             product.name,
             product.description,
             product.price,
             product.category,
-            product.image_url,
+            product.image,
             product.size_s_stock || 20,
             product.size_m_stock || 20,
             product.size_l_stock || 20,
             product.material,
+            product.createdAt || new Date().toISOString(),
+            product.updatedAt || new Date().toISOString()
           ]
         );
       } catch (error) {
@@ -219,7 +204,37 @@ async function migrateData() {
         }
       }
     }
-    console.log(`✓ ${productsData.length} products processed`);
+    console.log(`✓ ${products.length} products processed`);
+
+    // Migrate orders
+    if (orders && orders.length > 0) {
+      console.log('\nMigrating orders...');
+      for (const order of orders) {
+        try {
+          await connection.execute(
+            'INSERT INTO orders (id, user_id, status, total_amount, items, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [
+              order.id,
+              order.user_id,
+              order.status || 'pending',
+              order.total_amount,
+              JSON.stringify(order.items || []),
+              order.created_at || new Date().toISOString(),
+              order.updated_at || new Date().toISOString()
+            ]
+          );
+        } catch (error) {
+          if (error.code === 'ER_DUP_ENTRY') {
+            console.warn(`⚠ Skipping duplicate order: ${order.id}`);
+          } else {
+            throw error;
+          }
+        }
+      }
+      console.log(`✓ ${orders.length} orders processed`);
+    } else {
+      console.log('ℹ No orders to migrate');
+    }
 
     console.log('\n✅ Migration completed successfully!');
 

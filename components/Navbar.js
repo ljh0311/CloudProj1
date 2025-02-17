@@ -224,10 +224,23 @@ export default function Navbar() {
   const navLinks = [
     { href: "/", label: "Home" },
     { href: "/shop", label: "Shop" },
-    { href: "/about", label: "About" },
-    { href: "/dev/dashboard", label: "Dev Tools", icon: "🛠️" },
-    ...(isAdmin ? [{ href: "/admin/dashboard", label: "Admin Dashboard" }] : [])
+    { href: "/about", label: "About" }
   ];
+
+  // Define dev tools button separately
+  const DevToolsButton = () => (
+    <Button
+      as={NextLink}
+      href="/dev/dashboard"
+      variant="ghost"
+      color="white"
+      leftIcon={<Text fontSize="lg">🛠️</Text>}
+      _hover={{ bg: 'rgba(255, 255, 255, 0.1)' }}
+      size="sm"
+    >
+      Dev Tools
+    </Button>
+  );
 
   return (
     <Box
@@ -296,6 +309,7 @@ export default function Navbar() {
             spacing={4}
             display={{ base: 'none', md: 'flex' }}
           >
+            <DevToolsButton />
             <LoginStatus session={session} />
             {session ? (
               <>
@@ -332,6 +346,7 @@ export default function Navbar() {
         {/* Mobile Navigation */}
         <MobileNav isOpen={isOpen} links={[
           ...navLinks,
+          { href: "/dev/dashboard", label: "Dev Tools 🛠️" },
           { href: "/cart", label: `Cart ${cartItemCount > 0 ? `(${cartItemCount})` : ''}` },
           ...(session
             ? [

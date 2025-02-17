@@ -1,13 +1,10 @@
 import fs from 'fs';
 import path from 'path';
-// TODO: Uncomment the following line when MySQL RDS is set up
-// import mysql from 'mysql2/promise';
+import mysql from 'mysql2/promise';
 
 const productsPath = path.join(process.cwd(), 'data', 'products.json');
 const usersPath = path.join(process.cwd(), 'data', 'users.json');
 
-// TODO: Uncomment the following MySQL pool configuration when RDS is set up
-/*
 const pool = mysql.createPool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
@@ -17,7 +14,6 @@ const pool = mysql.createPool({
     connectionLimit: 10,
     queueLimit: 0
 });
-*/
 
 // Products operations
 export const getProducts = () => {
@@ -206,17 +202,132 @@ export const addOrder = (userId, order) => {
     }
 };
 
-// TODO: Uncomment the following MySQL query function when RDS is set up
-/*
-export async function query(sql, params) {
+// MySQL user operations
+export const getMySQLUserByEmail = async (email) => {
     try {
-        const [results] = await pool.execute(sql, params);
-        return results;
+        const [rows] = await pool.execute(
+            'SELECT * FROM users WHERE email = ?',
+            [email]
+        );
+        return rows[0] || null;
     } catch (error) {
-        console.error('Database query error:', error);
+        console.error('Database error:', error);
+        return null;
+    }
+};
+
+export const createMySQLUser = async (userData) => {
+    try {
+        const { name, email, password, role = 'customer' } = userData;
+        const [result] = await pool.execute(
+            'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
+            [name, email, password, role]
+        );
+        return result.insertId;
+    } catch (error) {
+        console.error('Database error:', error);
         throw error;
     }
-}
+};
 
-export default pool;
-*/ 
+// Fallback to JSON if database connection fails
+export const getUserByEmailFallback = (email) => {
+    try {
+        const users = getUsers();
+        return users.find(user => user.email === email);
+    } catch (error) {
+        console.error('Error finding user:', error);
+        return null;
+    }
+};
+
+export const addUserFallback = (user) => {
+    try {
+        const data = fs.readFileSync(usersPath, 'utf8');
+        const { users, lastId } = JSON.parse(data);
+        const newUser = {
+            ...user,
+            id: lastId + 1,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            orders: [],
+            cart: []
+        };
+        
+        users.push(newUser);
+        
+        fs.writeFileSync(usersPath, JSON.stringify({
+            users,
+            lastId: lastId + 1
+        }, null, 4));
+        
+        return newUser;
+    } catch (error) {
+        console.error('Error adding user:', error);
+        throw new Error('Failed to add user');
+    }
+};
+
+export const updateUserFallback = (id, updates) => {
+    try {
+        const data = fs.readFileSync(usersPath, 'utf8');
+        const { users, lastId } = JSON.parse(data);
+        const index = users.findIndex(u => u.id === id);
+        
+        if (index === -1) throw new Error('User not found');
+        
+        users[index] = {
+            ...users[index],
+            ...updates,
+            updatedAt: new Date().toISOString()
+        };
+        
+        fs.writeFileSync(usersPath, JSON.stringify({ users, lastId }, null, 4));
+        return users[index];
+    } catch (error) {
+        console.error('Error updating user:', error);
+        throw new Error('Failed to update user');
+    }
+};
+
+export const updateUserCartFallback = (userId, cart) => {
+    try {
+        const data = fs.readFileSync(usersPath, 'utf8');
+        const { users, lastId } = JSON.parse(data);
+        const index = users.findIndex(u => u.id === userId);
+        
+        if (index === -1) throw new Error('User not found');
+        
+        users[index].cart = cart;
+        users[index].updatedAt = new Date().toISOString();
+        
+        fs.writeFileSync(usersPath, JSON.stringify({ users, lastId }, null, 4));
+        return users[index];
+    } catch (error) {
+        console.error('Error updating user cart:', error);
+        throw new Error('Failed to update user cart');
+    }
+};
+
+export const addOrderFallback = (userId, order) => {
+    try {
+        const data = fs.readFileSync(usersPath, 'utf8');
+        const { users, lastId } = JSON.parse(data);
+        const index = users.findIndex(u => u.id === userId);
+        
+        if (index === -1) throw new Error('User not found');
+        
+        users[index].orders.push({
+            ...order,
+            id: Date.now(),
+            createdAt: new Date().toISOString()
+        });
+        users[index].updatedAt = new Date().toISOString();
+        
+        fs.writeFileSync(usersPath, JSON.stringify({ users, lastId }, null, 4));
+        return users[index].orders[users[index].orders.length - 1];
+    } catch (error) {
+        console.error('Error adding order:', error);
+        throw new Error('Failed to add order');
+    }
+}; 

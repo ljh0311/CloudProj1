@@ -25,6 +25,7 @@ import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody,
 import { FormControl, FormLabel, Textarea } from '@chakra-ui/react';
 import { useCart } from '../components/CartContext';
 import productsData from '../data/products.json';
+import { useSession } from 'next-auth/react';
 
 const ProductCard = ({ product }) => {
     const router = useRouter();
@@ -359,9 +360,10 @@ export default function Shop() {
     const [sizeFilter, setSizeFilter] = useState('');
     const [sortBy, setSortBy] = useState('');
     const { isOpen, onOpen, onClose } = useDisclosure();
+    const { data: session } = useSession();
 
-    // TODO: Replace with actual admin check
-    const isAdmin = true; // Temporary for testing
+    // Check if user is authenticated and is an admin
+    const isAdmin = session?.user?.role === 'admin';
 
     // Filter and sort products based on user selections
     const filteredProducts = products

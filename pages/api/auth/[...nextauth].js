@@ -28,8 +28,6 @@ export const authOptions = {
                         return null;
                     }
 
-                    console.log('User authenticated successfully:', user.email, 'Role:', user.role);
-
                     return {
                         id: user.id,
                         name: user.name,
@@ -46,17 +44,41 @@ export const authOptions = {
     ],
     session: {
         strategy: "jwt",
-        maxAge: 30 * 24 * 60 * 60, // 30 days
-        updateAge: 24 * 60 * 60, // 24 hours
+        maxAge: 24 * 60 * 60, // 24 hours
+        updateAge: 60 * 60, // 1 hour
+    },
+    jwt: {
+        secret: process.env.NEXTAUTH_SECRET,
+        maxAge: 24 * 60 * 60, // 24 hours
+        encryption: true,
     },
     cookies: {
         sessionToken: {
-            name: `next-auth.session-token`,
+            name: `__Secure-next-auth.session-token`,
             options: {
                 httpOnly: true,
                 sameSite: 'lax',
                 path: '/',
-                secure: process.env.NODE_ENV === 'production'
+                secure: true,
+                domain: process.env.NEXTAUTH_URL ? new URL(process.env.NEXTAUTH_URL).hostname : undefined
+            }
+        },
+        callbackUrl: {
+            name: `__Secure-next-auth.callback-url`,
+            options: {
+                httpOnly: true,
+                sameSite: 'lax',
+                path: '/',
+                secure: true
+            }
+        },
+        csrfToken: {
+            name: `__Host-next-auth.csrf-token`,
+            options: {
+                httpOnly: true,
+                sameSite: 'lax',
+                path: '/',
+                secure: true
             }
         }
     },
@@ -72,6 +94,10 @@ export const authOptions = {
                 token.name = session.name;
                 token.image = session.image;
             }
+
+            // Add timestamp for additional security
+            token.iat = Math.floor(Date.now() / 1000);
+            token.exp = Math.floor(Date.now() / 1000) + (24 * 60 * 60); // 24 hours
             
             return token;
         },
@@ -80,6 +106,9 @@ export const authOptions = {
                 session.user.role = token.role;
                 session.user.id = token.id;
                 session.user.image = token.image;
+
+                // Add session expiry
+                session.expires = new Date(token.exp * 1000).toISOString();
             }
             return session;
         }
@@ -91,10 +120,13 @@ export const authOptions = {
     },
     debug: process.env.NODE_ENV === 'development',
     secret: process.env.NEXTAUTH_SECRET,
-    useSecureCookies: process.env.NODE_ENV === 'production',
+    useSecureCookies: true,
     events: {
-        async signOut() {
-            // Cleanup any session-related data if needed
+        async signOut({ session, token }) {
+            // Cleanup any session-related data
+            if (token) {
+                token.exp = 0; // Immediately expire the token
+            }
         },
         async error(error) {
             console.error('NextAuth Error:', error);

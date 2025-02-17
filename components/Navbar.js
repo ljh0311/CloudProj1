@@ -53,6 +53,31 @@ const NavLink = ({ href, children }) => (
   </LinkBox>
 );
 
+// Login status component
+const LoginStatus = ({ session }) => (
+  <Text
+    color="whiteAlpha.900"
+    fontSize="sm"
+    px={4}
+    py={2}
+    bg="whiteAlpha.100"
+    rounded="full"
+    display={{ base: 'none', md: 'block' }}
+  >
+    {session ? (
+      <HStack spacing={2}>
+        <Box as="span" color="green.300">●</Box>
+        <Text>Logged in as {session.user.name}</Text>
+      </HStack>
+    ) : (
+      <HStack spacing={2}>
+        <Box as="span" color="red.300">●</Box>
+        <Text>Not logged in</Text>
+      </HStack>
+    )}
+  </Text>
+);
+
 // Menu item component for user dropdown
 const UserMenuItem = ({ href, icon, label, onClick, color = "white", hoverBg = "gray.700" }) => (
   <MenuItem
@@ -115,17 +140,17 @@ const UserMenu = ({ session, isAdmin }) => (
       rightIcon={<ChevronDownIcon />}
     >
       <HStack>
-        <Avatar 
-          size="sm" 
-          name={session.user.name} 
+        <Avatar
+          size="sm"
+          name={session.user.name}
           src={session.user.image}
           bg="blue.500"
         />
         <Text color="white">{session.user.name}</Text>
       </HStack>
     </MenuButton>
-    <MenuList 
-      bg="gray.800" 
+    <MenuList
+      bg="gray.800"
       borderColor="whiteAlpha.300"
       boxShadow="dark-lg"
       py={2}
@@ -187,7 +212,7 @@ export default function Navbar() {
   const { isOpen, onToggle } = useDisclosure();
   const [isLogoHovered, setIsLogoHovered] = useState(false);
   const { getCartCount } = useCart();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const cartItemCount = getCartCount();
   const isAdmin = session?.user?.role === 'admin';
 
@@ -200,9 +225,9 @@ export default function Navbar() {
   ];
 
   return (
-    <Box 
-      position="sticky" 
-      top={0} 
+    <Box
+      position="sticky"
+      top={0}
       zIndex={1000}
       bg="rgba(0, 0, 0, 0.8)"
       backdropFilter="blur(10px)"
@@ -260,11 +285,12 @@ export default function Navbar() {
             ))}
           </HStack>
 
-          {/* Auth Buttons and Cart */}
+          {/* Login Status and Auth Buttons */}
           <HStack
             spacing={4}
             display={{ base: 'none', md: 'flex' }}
           >
+            <LoginStatus session={session} />
             {session ? (
               <>
                 <CartButton cartItemCount={cartItemCount} />
@@ -301,16 +327,16 @@ export default function Navbar() {
         <MobileNav isOpen={isOpen} links={[
           ...navLinks,
           { href: "/cart", label: `Cart ${cartItemCount > 0 ? `(${cartItemCount})` : ''}` },
-          ...(session 
+          ...(session
             ? [
-                { href: "/profile", label: "Profile" },
-                { href: "/orders", label: "Orders" },
-                ...(isAdmin ? [{ href: "/admin/dashboard", label: "Admin Dashboard" }] : [])
-              ]
+              { href: "/profile", label: "Profile" },
+              { href: "/orders", label: "Orders" },
+              ...(isAdmin ? [{ href: "/admin/dashboard", label: "Admin Dashboard" }] : [])
+            ]
             : [
-                { href: "/auth", label: "Sign In" },
-                { href: "/auth?mode=signup", label: "Sign Up" }
-              ]
+              { href: "/auth", label: "Sign In" },
+              { href: "/auth?mode=signup", label: "Sign Up" }
+            ]
           )
         ]} />
       </Container>

@@ -29,6 +29,7 @@ import { useState } from 'react';
 import { useCart } from './CartContext';
 import { useSession, signOut } from 'next-auth/react';
 
+// Navigation link component with consistent styling
 const NavLink = ({ href, children }) => (
   <LinkBox>
     <LinkOverlay as={NextLink} href={href}>
@@ -52,16 +53,151 @@ const NavLink = ({ href, children }) => (
   </LinkBox>
 );
 
+// Menu item component for user dropdown
+const UserMenuItem = ({ href, icon, label, onClick, color = "white", hoverBg = "gray.700" }) => (
+  <MenuItem
+    as={href ? NextLink : undefined}
+    href={href}
+    onClick={onClick}
+    bg="gray.800"
+    _hover={{ bg: hoverBg }}
+    _focus={{ bg: hoverBg }}
+    _active={{ bg: hoverBg === "gray.700" ? "gray.600" : hoverBg }}
+  >
+    <HStack>
+      {typeof icon === 'string' ? (
+        <Box as="span" mr={2}>{icon}</Box>
+      ) : (
+        icon
+      )}
+      <Text color={color}>{label}</Text>
+    </HStack>
+  </MenuItem>
+);
+
+// Cart button component
+const CartButton = ({ cartItemCount }) => (
+  <Button
+    as={NextLink}
+    href="/cart"
+    variant="ghost"
+    color="white"
+    leftIcon={<FaShoppingCart />}
+    _hover={{ bg: 'rgba(255, 255, 255, 0.1)' }}
+    position="relative"
+    pr={cartItemCount > 0 ? 8 : 4}
+  >
+    Cart
+    {cartItemCount > 0 && (
+      <Badge
+        position="absolute"
+        top={1}
+        right={1}
+        colorScheme="red"
+        borderRadius="full"
+        px={2}
+      >
+        {cartItemCount}
+      </Badge>
+    )}
+  </Button>
+);
+
+// User menu component
+const UserMenu = ({ session, isAdmin }) => (
+  <Menu>
+    <MenuButton
+      as={Button}
+      variant="ghost"
+      color="white"
+      _hover={{ bg: 'whiteAlpha.200' }}
+      _active={{ bg: 'whiteAlpha.300' }}
+      rightIcon={<ChevronDownIcon />}
+    >
+      <HStack>
+        <Avatar 
+          size="sm" 
+          name={session.user.name} 
+          src={session.user.image}
+          bg="blue.500"
+        />
+        <Text color="white">{session.user.name}</Text>
+      </HStack>
+    </MenuButton>
+    <MenuList 
+      bg="gray.800" 
+      borderColor="whiteAlpha.300"
+      boxShadow="dark-lg"
+      py={2}
+    >
+      <UserMenuItem
+        href="/profile"
+        icon={<FaUser />}
+        label="Profile"
+      />
+      <UserMenuItem
+        href="/orders"
+        icon="📦"
+        label="Orders"
+      />
+      {isAdmin && (
+        <>
+          <MenuDivider borderColor="whiteAlpha.300" />
+          <UserMenuItem
+            href="/admin/dashboard"
+            icon="⚙️"
+            label="Admin Dashboard"
+          />
+        </>
+      )}
+      <MenuDivider borderColor="whiteAlpha.300" />
+      <UserMenuItem
+        onClick={() => signOut()}
+        icon="🚪"
+        label="Sign Out"
+        color="red.300"
+        hoverBg="red.900"
+      />
+    </MenuList>
+  </Menu>
+);
+
+// Mobile navigation component
+const MobileNav = ({ isOpen, links }) => (
+  <Collapse in={isOpen} animateOpacity>
+    <Stack
+      py={4}
+      spacing={4}
+      display={{ md: 'none' }}
+    >
+      {links.map((link) => (
+        <NavLink key={link.href} href={link.href}>
+          {link.label}
+        </NavLink>
+      ))}
+    </Stack>
+  </Collapse>
+);
+
+/**
+ * Main navigation bar component for the application.
+ * Provides navigation links, user authentication, and cart functionality.
+ */
 export default function Navbar() {
   const { isOpen, onToggle } = useDisclosure();
   const [isLogoHovered, setIsLogoHovered] = useState(false);
   const { getCartCount } = useCart();
-  const cartItemCount = getCartCount();
   const { data: session } = useSession();
-  console.log('Current session:', session);
-
-  // Check if user is admin
+  const cartItemCount = getCartCount();
   const isAdmin = session?.user?.role === 'admin';
+
+  // Define navigation links
+  const navLinks = [
+    { href: "/", label: "Home" },
+    { href: "/shop", label: "Shop" },
+    { href: "/about", label: "About" },
+    ...(isAdmin ? [{ href: "/admin/dashboard", label: "Admin Dashboard" }] : [])
+  ];
 
   return (
     <Box 
@@ -117,10 +253,11 @@ export default function Navbar() {
             spacing={1}
             display={{ base: 'none', md: 'flex' }}
           >
-            <NavLink href="/">Home</NavLink>
-            <NavLink href="/shop">Shop</NavLink>
-            <NavLink href="/about">About</NavLink>
-            {isAdmin && <NavLink href="/admin/dashboard">Admin Dashboard</NavLink>}
+            {navLinks.map((link) => (
+              <NavLink key={link.href} href={link.href}>
+                {link.label}
+              </NavLink>
+            ))}
           </HStack>
 
           {/* Auth Buttons and Cart */}
@@ -130,117 +267,8 @@ export default function Navbar() {
           >
             {session ? (
               <>
-                {/* Cart Button */}
-                <Button
-                  as={NextLink}
-                  href="/cart"
-                  variant="ghost"
-                  color="white"
-                  leftIcon={<FaShoppingCart />}
-                  _hover={{ bg: 'rgba(255, 255, 255, 0.1)' }}
-                  position="relative"
-                  pr={cartItemCount > 0 ? 8 : 4}
-                >
-                  Cart
-                  {cartItemCount > 0 && (
-                    <Badge
-                      position="absolute"
-                      top={1}
-                      right={1}
-                      colorScheme="red"
-                      borderRadius="full"
-                      px={2}
-                    >
-                      {cartItemCount}
-                    </Badge>
-                  )}
-                </Button>
-
-                {/* User Menu */}
-                <Menu>
-                  <MenuButton
-                    as={Button}
-                    variant="ghost"
-                    color="white"
-                    _hover={{ bg: 'whiteAlpha.200' }}
-                    _active={{ bg: 'whiteAlpha.300' }}
-                    rightIcon={<ChevronDownIcon />}
-                  >
-                    <HStack>
-                      <Avatar 
-                        size="sm" 
-                        name={session.user.name} 
-                        src={session.user.image}
-                        bg="blue.500"
-                      />
-                      <Text color="white">{session.user.name}</Text>
-                    </HStack>
-                  </MenuButton>
-                  <MenuList 
-                    bg="gray.800" 
-                    borderColor="whiteAlpha.300"
-                    boxShadow="dark-lg"
-                    py={2}
-                  >
-                    <MenuItem 
-                      as={NextLink}
-                      href="/profile"
-                      bg="gray.800"
-                      _hover={{ bg: 'gray.700' }}
-                      _focus={{ bg: 'gray.700' }}
-                      _active={{ bg: 'gray.600' }}
-                    >
-                      <HStack>
-                        <FaUser />
-                        <Text color="white">Profile</Text>
-                      </HStack>
-                    </MenuItem>
-                    <MenuItem 
-                      as={NextLink}
-                      href="/orders"
-                      bg="gray.800"
-                      _hover={{ bg: 'gray.700' }}
-                      _focus={{ bg: 'gray.700' }}
-                      _active={{ bg: 'gray.600' }}
-                    >
-                      <HStack>
-                        <Box as="span" mr={2}>📦</Box>
-                        <Text color="white">Orders</Text>
-                      </HStack>
-                    </MenuItem>
-                    {isAdmin && (
-                      <>
-                        <MenuDivider borderColor="whiteAlpha.300" />
-                        <MenuItem 
-                          as={NextLink}
-                          href="/admin/dashboard"
-                          bg="gray.800"
-                          _hover={{ bg: 'gray.700' }}
-                          _focus={{ bg: 'gray.700' }}
-                          _active={{ bg: 'gray.600' }}
-                        >
-                          <HStack>
-                            <Box as="span" mr={2}>⚙️</Box>
-                            <Text color="white">Admin Dashboard</Text>
-                          </HStack>
-                        </MenuItem>
-                      </>
-                    )}
-                    <MenuDivider borderColor="whiteAlpha.300" />
-                    <MenuItem 
-                      onClick={() => signOut()}
-                      bg="gray.800"
-                      _hover={{ bg: 'red.900' }}
-                      _focus={{ bg: 'red.900' }}
-                      _active={{ bg: 'red.800' }}
-                    >
-                      <HStack>
-                        <Box as="span" mr={2}>🚪</Box>
-                        <Text color="red.300">Sign Out</Text>
-                      </HStack>
-                    </MenuItem>
-                  </MenuList>
-                </Menu>
+                <CartButton cartItemCount={cartItemCount} />
+                <UserMenu session={session} isAdmin={isAdmin} />
               </>
             ) : (
               <>
@@ -270,41 +298,21 @@ export default function Navbar() {
         </Flex>
 
         {/* Mobile Navigation */}
-        <Collapse in={isOpen} animateOpacity>
-          <Stack
-            py={4}
-            spacing={4}
-            display={{ md: 'none' }}
-          >
-            <NavLink href="/">Home</NavLink>
-            <NavLink href="/shop">Shop</NavLink>
-            <NavLink href="/about">About</NavLink>
-            <NavLink href="/cart">Cart {cartItemCount > 0 && `(${cartItemCount})`}</NavLink>
-            
-            {session ? (
-              <>
-                <NavLink href="/profile">Profile</NavLink>
-                <NavLink href="/orders">Orders</NavLink>
-                {isAdmin && <NavLink href="/admin/dashboard">Admin Dashboard</NavLink>}
-                <Divider borderColor="rgba(255, 255, 255, 0.1)" />
-                <Button
-                  onClick={() => signOut()}
-                  colorScheme="red"
-                  variant="ghost"
-                  width="100%"
-                >
-                  Sign Out
-                </Button>
-              </>
-            ) : (
-              <>
-                <Divider borderColor="rgba(255, 255, 255, 0.1)" />
-                <NavLink href="/auth">Sign In</NavLink>
-                <NavLink href="/auth?mode=signup">Sign Up</NavLink>
-              </>
-            )}
-          </Stack>
-        </Collapse>
+        <MobileNav isOpen={isOpen} links={[
+          ...navLinks,
+          { href: "/cart", label: `Cart ${cartItemCount > 0 ? `(${cartItemCount})` : ''}` },
+          ...(session 
+            ? [
+                { href: "/profile", label: "Profile" },
+                { href: "/orders", label: "Orders" },
+                ...(isAdmin ? [{ href: "/admin/dashboard", label: "Admin Dashboard" }] : [])
+              ]
+            : [
+                { href: "/auth", label: "Sign In" },
+                { href: "/auth?mode=signup", label: "Sign Up" }
+              ]
+          )
+        ]} />
       </Container>
     </Box>
   );

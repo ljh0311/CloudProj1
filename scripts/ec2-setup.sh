@@ -5,12 +5,41 @@
 #############################################
 
 # HOW TO USE THIS SCRIPT:
-# 1. Launch an EC2 instance in AWS Console
-# 2. Choose "Amazon Linux 2" as the AMI
-# 3. In "Advanced Details" > "User data", paste this entire script
-# 4. After instance launches, connect via EC2 Instance Connect
-# 5. Navigate to /home/ec2-user/app/CloudProj1
-# 6. Edit the .env file with your actual values
+# 1. Launch an EC2 instance in AWS Console:
+#    a. Go to AWS Console > EC2 > Launch Instance
+#    b. Enter a name for your instance
+#    c. Select instance type (t2.micro recommended for testing)
+#
+# 2. Choose "Amazon Linux 2" as the AMI:
+#    a. In the AMI selection screen, select "Amazon Linux 2 AMI (HVM)"
+#    b. Make sure it shows "Free tier eligible" if needed
+#
+# 3. Configure User Data:
+#    a. Scroll down to "Advanced Details" section
+#    b. Find "User data" text area
+#    c. Copy this entire script
+#    d. Paste the script into the User data field
+#
+# 4. Connect to your instance:
+#    a. Wait 3-5 minutes for instance to fully initialize
+#    b. Go to EC2 Dashboard > Instances
+#    c. Select your instance
+#    d. Click "Connect" button
+#    e. Choose "EC2 Instance Connect" tab
+#    f. Click "Connect" to open terminal
+#
+# 5. Navigate to application directory:
+#    a. In the terminal, type: cd /home/ec2-user/app/CloudProj1
+#    b. Verify files with: ls
+#
+# 6. Configure environment variables:
+#    a. Open .env file: nano .env
+#    b. Update following values:
+#       - DB_HOST=<your RDS endpoint>
+#       - DB_USER=<your database username>
+#       - DB_PASSWORD=<your database password>
+#       - DB_NAME=<your database name>
+#    c. Save file: Ctrl+X, then Y, then Enter
 #############################################
 
 echo "Starting EC2 setup for KAPPY project..."
@@ -21,16 +50,16 @@ echo "Starting EC2 setup for KAPPY project..."
 
 echo "Updating system and installing dependencies..."
 # Update system packages
-sudo yum update -y
+yum update -y
 
 # Install required packages
-sudo yum install -y git                    # For cloning repository
-sudo yum install -y mysql                  # MySQL client for database operations
+yum install -y git                    # For cloning repository
+yum install -y mysql                  # MySQL client for database operations
 
 # Install Node.js 16.x (newer version for better performance)
 echo "Installing Node.js 16.x..."
-curl -sL https://rpm.nodesource.com/setup_16.x | sudo bash -
-sudo yum install -y nodejs
+curl -fsSL https://rpm.nodesource.com/setup_16.x | bash -
+yum install -y nodejs
 
 #############################################
 # Application Setup
@@ -38,9 +67,8 @@ sudo yum install -y nodejs
 
 echo "Setting up application directory..."
 # Create and navigate to application directory
-cd /home/ec2-user
-mkdir -p app
-cd app
+mkdir -p /home/ec2-user/app
+cd /home/ec2-user/app
 
 # Clone the project repository
 echo "Cloning project repository..."
@@ -68,9 +96,9 @@ cat > .env << EOF
 #======================================
 # Database Configuration
 #======================================
-DB_HOST=your-rds-endpoint.region.rds.amazonaws.com
-DB_USER=your_rds_username
-DB_PASSWORD=your_rds_password
+DB_HOST=your-rds-endpoint
+DB_USER=admin
+DB_PASSWORD=your-password
 DB_NAME=kappy_db
 
 #======================================
@@ -83,13 +111,13 @@ PORT=3000
 # Authentication Configuration
 #======================================
 # Replace your_ec2_public_ip with your actual EC2 public IP
-NEXTAUTH_URL=http://your_ec2_public_ip:3000
-NEXTAUTH_SECRET=your_generated_secret
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=your-secret
 
 #======================================
 # API Configuration
 #======================================
-NEXT_PUBLIC_API_URL=http://your_ec2_public_ip:3000/api
+NEXT_PUBLIC_API_URL=http://localhost:3000/api
 EOF
 
 #############################################
@@ -98,7 +126,7 @@ EOF
 
 echo "Setting up PM2 process manager..."
 # Install PM2 globally
-sudo npm install -g pm2
+npm install -g pm2
 
 # Build the application
 echo "Building the application..."
@@ -148,4 +176,29 @@ SETUP COMPLETE! NEXT STEPS:
    mysql -h your-rds-endpoint -u your-username -p
 
 ==============================================
-""" 
+"""
+
+# Set permissions for .env
+chmod 600 /home/ec2-user/app/.env
+chown ec2-user:ec2-user /home/ec2-user/app/.env
+
+# Create a status page
+cat > /home/ec2-user/app/status.html << 'EOL'
+<!DOCTYPE html>
+<html>
+<head>
+    <title>EC2 Setup Status</title>
+</head>
+<body>
+    <h1>EC2 Setup Complete</h1>
+    <p>Your EC2 instance has been initialized successfully.</p>
+</body>
+</html>
+EOL
+
+# Set up application log
+touch /var/log/kappy-setup.log
+chown ec2-user:ec2-user /var/log/kappy-setup.log
+
+# Log completion
+echo "EC2 setup completed at $(date)" >> /var/log/kappy-setup.log 

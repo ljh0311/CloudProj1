@@ -1,234 +1,248 @@
 # Database Setup and Migration Guide
 
-## Important Note: Current Data Storage
-The application is currently using JSON files for data storage. MySQL/RDS integration is temporarily disabled to allow for easier initial setup and development. The JSON files are located in the `/data` directory:
-- `/data/products.json`: Product data
-- `/data/users.json`: User data
+## Current Data Structure
+The application uses JSON files as a backup system, with the main database being MySQL on AWS RDS. The JSON files are located in the `/data` directory:
 
-## Enabling MySQL/RDS Integration
+### Static Assets
+The application includes default images in `/public/images`:
+- `logo3.jpg`: Application logo used in the navbar and branding
+- `demoProduct.jpg`: Default product image used when no specific image is provided
 
-### Prerequisites
-Before enabling MySQL, ensure you have:
-1. Created an AWS RDS instance
-2. Configured security groups
-3. Have your database credentials ready
-4. Installed MySQL Workbench or similar tool
+When deploying to AWS, these images should be copied to the EC2 instance in the same directory structure.
 
-### Steps to Enable MySQL
+### JSON Files Structure
+- `/data/orders.json`: Order data
+  ```json
+  {
+      "orders": [],
+      "lastId": 0
+  }
+  ```
 
-1. In `utils/db.js`:
-   - Uncomment the MySQL import
-   - Uncomment the pool configuration
-   - Uncomment the query function export
+- `/data/users.json`: User data with orders and cart information
+  ```json
+  {
+      "users": [
+          {
+              "id": number,
+              "email": string,
+              "name": string,
+              "password": string (bcrypt hashed),
+              "role": "admin" | "customer",
+              "createdAt": ISO timestamp,
+              "updatedAt": ISO timestamp,
+              "orders": array,
+              "cart": array
+          }
+      ],
+      "lastId": number
+  }
+  ```
 
-2. In `scripts/migrate-data.js`:
-   - Uncomment the query import
-   - Uncomment all migration functions
-   - Remove the temporary console.log messages
+- `/data/products.json`: Product catalog with inventory
+  ```json
+  {
+      "products": [
+          {
+              "id": number,
+              "name": string,
+              "price": number,
+              "category": string,
+              "image": string, // Defaults to "/images/demoProduct.jpg" if not specified
+              "description": string,
+              "material": string,
+              "size_s_stock": number,
+              "size_m_stock": number,
+              "size_l_stock": number,
+              "createdAt": ISO timestamp,
+              "updatedAt": ISO timestamp
+          }
+      ],
+      "lastId": number
+  }
+  ```
 
-3. Install required dependencies:
-```bash
-npm install mysql2 dotenv
-```
-
-4. Configure your environment:
-```bash
-cp .env.example .env
-# Edit .env with your RDS credentials
-```
-
-## Initial AWS RDS Setup
+## AWS RDS Setup (Web Console)
 
 ### 1. Create RDS Instance
-1. Go to AWS Console and navigate to RDS
+1. Log in to AWS Console and navigate to RDS
 2. Click "Create database"
-3. Choose the following settings:
-   - Method: Standard create
-   - Engine type: MySQL
-   - Version: MySQL 8.0.28 or later
-   - Templates: Free tier
-   - DB instance identifier: kappy-db
-   - Master username: admin
-   - Master password: [Create a strong password]
-
-4. Configure Instance:
-   - Instance: db.t3.micro (free tier)
-   - Storage: 20 GB (minimum)
-   - Enable storage autoscaling: Yes
-   - Maximum storage threshold: 1000 GB
-
-5. Connectivity:
-   - VPC: Default VPC
-   - Subnet group: Default
+3. Choose settings:
+   - Standard create
+   - MySQL
+   - Free tier template
+   - DB instance identifier: `kappy-db`
+   - Master username: `admin`
+   - Master password: Create a strong password
+   - Instance: db.t3.micro
+   - Storage: 20 GB
+   - Enable autoscaling
+   - VPC: Default
    - Public access: Yes (for development)
-   - VPC security group: Create new
-   - Availability Zone: No preference
-   - Database port: 3306
-
-6. Database authentication:
-   - Password authentication
-
-7. Additional configuration:
-   - Initial database name: kappy_db
-   - Backup retention: 7 days
-   - Enable encryption: Yes
-
-8. Click "Create database"
+   - Security group: Create new
+   - Initial database name: `kappy_db`
+   - Enable automated backups
 
 ### 2. Configure Security Group
 1. Go to EC2 > Security Groups
-2. Find the security group created for your RDS
-3. Add inbound rule:
-   - Type: MySQL/Aurora
-   - Port: 3306
-   - Source: Your IP address
-   - Description: Development access
+2. Find the RDS security group
+3. Edit inbound rules:
+   - Add rule: MySQL/Aurora (3306)
+   - Source: Your EC2 security group ID
+   - Description: "Allow EC2 access"
 
-## Local Environment Setup
+## Database Schema
 
-### 1. Install Required Dependencies
-```bash
-# Install MySQL2 and other dependencies
-npm install mysql2 dotenv
+### Users Table
+```sql
+CREATE TABLE users (
+    id VARCHAR(36) PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    role ENUM('admin', 'customer') DEFAULT 'customer',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
 ```
 
-### 2. Configure Environment Variables
-1. Copy the example env file:
-```bash
-cp .env.example .env
+### Products Table
+```sql
+CREATE TABLE products (
+    id VARCHAR(36) PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    price DECIMAL(10, 2) NOT NULL,
+    category VARCHAR(100),
+    image VARCHAR(255),
+    description TEXT,
+    material VARCHAR(100),
+    size_s_stock INT DEFAULT 20,
+    size_m_stock INT DEFAULT 20,
+    size_l_stock INT DEFAULT 20,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
 ```
 
-2. Update `.env` with your RDS details:
-```env
-DB_HOST=your-rds-endpoint.region.rds.amazonaws.com
-DB_USER=admin
-DB_PASSWORD=your-password
-DB_NAME=kappy_db
+### Orders Table
+```sql
+CREATE TABLE orders (
+    id VARCHAR(36) PRIMARY KEY,
+    user_id VARCHAR(36),
+    status ENUM('pending', 'processing', 'completed', 'cancelled') DEFAULT 'pending',
+    total_amount DECIMAL(10, 2) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
 ```
 
-## Database Migration Process
+### Order Items Table
+```sql
+CREATE TABLE order_items (
+    id VARCHAR(36) PRIMARY KEY,
+    order_id VARCHAR(36),
+    product_id VARCHAR(36),
+    quantity INT NOT NULL,
+    size ENUM('S', 'M', 'L') NOT NULL,
+    price_at_time DECIMAL(10, 2) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (order_id) REFERENCES orders(id),
+    FOREIGN KEY (product_id) REFERENCES products(id)
+);
+```
 
-### 1. Create Database Tables
-1. Connect to your RDS instance using MySQL Workbench:
+## Data Migration Process
+
+### 1. Install MySQL Workbench
+1. Download and install MySQL Workbench
+2. Add new connection:
    - Hostname: Your RDS endpoint
-   - Username: admin
-   - Password: Your password
    - Port: 3306
-   - Database: kappy_db
+   - Username: admin
+   - Password: Your RDS password
 
-2. Run the schema script:
-```sql
--- Copy and paste the contents of data/schema.sql
-CREATE TABLE IF NOT EXISTS products (
-    -- ... schema contents
-);
+### 2. Create Database Tables
+1. Connect to RDS through MySQL Workbench
+2. Execute the schema SQL scripts above in order:
+   - Users table
+   - Products table
+   - Orders table
+   - Order Items table
 
-CREATE TABLE IF NOT EXISTS users (
-    -- ... schema contents
-);
-
--- ... other table creations
-```
-
-### 2. Migrate JSON Data to MySQL
-
-1. Ensure your data files are up to date:
-   - `/data/products.json`
-   - `/data/users.json`
-
-2. Run the migration script:
+### 3. Run Migration Script
 ```bash
-# From project root
-node scripts/migrate-data.js
+# Install dependencies
+npm install mysql2 dotenv
+
+# Set up environment variables
+cp .env.example .env
+# Update .env with RDS credentials
+
+# Run migration
+node scripts/migrate-db.js
 ```
 
-3. Verify the migration:
-```sql
--- Connect to MySQL and run:
-SELECT COUNT(*) FROM products;
-SELECT COUNT(*) FROM users;
-```
+## Backup Strategy
 
-## Updating Data in RDS
+### Automated RDS Backups
+1. In RDS Console:
+   - Select your DB instance
+   - Modify
+   - Enable automatic backups
+   - Set retention period (7 days recommended)
 
-### Method 1: Using Migration Script
-1. Update the JSON files in the `/data` directory
-2. Clear existing data (if needed):
-```sql
-TRUNCATE TABLE products;
-TRUNCATE TABLE users;
-```
-3. Run the migration script again:
+### JSON Backup Process
+1. Create backup directory:
 ```bash
-node scripts/migrate-data.js
+mkdir -p data/backups
 ```
 
-### Method 2: Direct SQL Updates
-1. Connect to RDS using MySQL Workbench
-2. Run your SQL commands:
-```sql
--- Add new product
-INSERT INTO products (name, price, ...) VALUES ('New Product', 29.99, ...);
-
--- Update existing product
-UPDATE products SET price = 39.99 WHERE id = 1;
-
--- Delete product
-DELETE FROM products WHERE id = 1;
-```
-
-## Troubleshooting
-
-### Connection Issues
-1. Verify your `.env` file has correct credentials
-2. Check security group inbound rules
-3. Test connection:
+2. Run backup script:
 ```bash
-mysql -h your-rds-endpoint -u admin -p
+# scripts/backup-json.js
+const fs = require('fs').promises;
+const path = require('path');
+
+async function backupJson() {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const files = ['users.json', 'products.json', 'orders.json'];
+    
+    for (const file of files) {
+        const sourcePath = path.join(__dirname, '../data', file);
+        const backupPath = path.join(__dirname, '../data/backups', `${file.replace('.json', '')}-${timestamp}.json`);
+        await fs.copyFile(sourcePath, backupPath);
+    }
+}
+
+backupJson();
 ```
 
-### Migration Errors
-1. Check the error message in console
-2. Verify JSON data format
-3. Ensure database schema matches JSON structure
-4. Common fixes:
+## Monitoring and Maintenance
+
+### Health Checks
+1. Database connection:
 ```sql
--- Reset auto-increment
-ALTER TABLE products AUTO_INCREMENT = 1;
-ALTER TABLE users AUTO_INCREMENT = 1;
-
--- Check for duplicate entries
-SELECT id, COUNT(*) FROM products GROUP BY id HAVING COUNT(*) > 1;
+SELECT 1;
 ```
 
-## Backup and Restore
+2. Table status:
+```sql
+SHOW TABLE STATUS;
+```
 
-### Create Manual Backup
-1. Go to AWS RDS Console
-2. Select your database
-3. Actions > Take snapshot
-4. Name your snapshot and create
+3. Connection count:
+```sql
+SHOW STATUS WHERE Variable_name = 'Threads_connected';
+```
 
-### Restore from Backup
-1. Go to AWS RDS Console
-2. Navigate to Snapshots
-3. Select your snapshot
-4. Actions > Restore snapshot
-5. Configure new instance settings
-6. Update application `.env` with new endpoint
-
-## Best Practices
-
-1. Always backup before major changes
-2. Test migrations on development environment first
-3. Keep JSON files as backup
-4. Document any schema changes
-5. Use transactions for multiple related updates
-6. Regular monitoring of:
-   - Database size
-   - Connection count
-   - Query performance
-   - Error logs
+### Best Practices
+1. Regular backups of both RDS and JSON files
+2. Monitor RDS metrics in AWS Console
+3. Keep JSON files as fallback
+4. Document all schema changes
+5. Regular security audits
+6. Monitor connection limits
 
 ## Security Notes
 

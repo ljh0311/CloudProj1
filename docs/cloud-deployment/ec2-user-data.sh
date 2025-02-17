@@ -7,7 +7,6 @@
 # 1. Replace the following variables with your values:
 #    - RDS_ENDPOINT
 #    - RDS_PASSWORD
-#    - EC2_PUBLIC_IP
 #    - NEXTAUTH_SECRET
 # 2. Copy this entire script
 # 3. When launching EC2:
@@ -20,14 +19,17 @@
 # Configuration Variables - EDIT THESE VALUES
 #---------------------------------------------------------
 RDS_ENDPOINT="database1.czsa24cac7y5.us-east-1.rds.amazonaws.com"  # Your RDS endpoint
-RDS_PASSWORD="KappyAdmin"                                       # Your RDS password
-EC2_PUBLIC_IP="44.202.255.254"                                           # Your EC2 public IP
-# To generate a secure NEXTAUTH_SECRET:
-# 1. Open a terminal
-# 2. Run: openssl rand -base64 32
-# 3. Copy the output
-# 4. Paste it below between the quotes
-NEXTAUTH_SECRET="dKq2L3q/7ZZzXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"     # Generated using openssl rand -base64 32
+RDS_PASSWORD="KappyAdmin"                                          # Your RDS password
+
+# Automatically retrieve the EC2 public IP
+EC2_PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
+echo "Retrieved EC2 Public IP: ${EC2_PUBLIC_IP}"
+
+# Generate NEXTAUTH_SECRET if not provided
+if [ -z "$NEXTAUTH_SECRET" ]; then
+    NEXTAUTH_SECRET=$(openssl rand -base64 32)
+    echo "Generated new NEXTAUTH_SECRET"
+fi
 
 #---------------------------------------------------------
 # System Updates and Software Installation
@@ -35,10 +37,25 @@ NEXTAUTH_SECRET="dKq2L3q/7ZZzXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"     # Generated u
 echo "Starting system setup..."
 
 # Update system packages
-yum update -y
+sudo yum update -y
 
-# Install required software
-yum install -y git nodejs npm mysql
+# Install git and other essentials
+sudo yum install -y git
+
+# Install NVM and Node.js
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+export NVM_DIR="/home/ec2-user/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+
+# Install and use Node.js 18.17.0
+nvm install 18.17.0
+nvm use 18.17.0
+nvm alias default 18.17.0
+
+# Verify Node.js version
+node -v
+npm -v
 
 # Install PM2 globally
 npm install -g pm2
@@ -50,6 +67,9 @@ echo "Setting up application directory..."
 
 # Create and configure app directory
 cd /home/ec2-user
+if [ -d "app/CloudProj1" ]; then
+    rm -rf app/CloudProj1
+fi
 mkdir -p app
 chown ec2-user:ec2-user app
 cd app
@@ -94,58 +114,53 @@ chown ec2-user:ec2-user .env
 echo "Setting up application..."
 
 # Switch to ec2-user for npm commands
-su - ec2-user << 'EOF'
+sudo -u ec2-user bash << 'EOF'
 cd /home/ec2-user/app/CloudProj1
 
-# Install dependencies
+# Ensure correct Node.js version
+source ~/.nvm/nvm.sh
+nvm use 18.17.0
+
+# Clean install
+rm -rf node_modules
+rm -rf .next
 npm install
 
 # Build application
 npm run build
 
-# Start application with PM2
+# Start with PM2
+pm2 delete all
 pm2 start npm --name "kappy" -- start
-
-# Save PM2 process list
 pm2 save
 
 # Setup PM2 startup script
 sudo env PATH=$PATH:/usr/bin pm2 startup systemd -u ec2-user --hp /home/ec2-user
+pm2 save
 EOF
 
 #---------------------------------------------------------
-# Status Check
+# Final Status Check
 #---------------------------------------------------------
-echo "Checking setup status..."
+echo "Checking application status..."
 
-# Create status page
-cat > /home/ec2-user/app/CloudProj1/setup-status.html << EOF
-<!DOCTYPE html>
-<html>
-<head>
-    <title>KAPPY - Setup Status</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 40px; }
-        .success { color: #28a745; }
-        .info { color: #17a2b8; }
-    </style>
-</head>
-<body>
-    <h1>🎉 KAPPY Setup Complete!</h1>
-    <p class="success">Your EC2 instance has been successfully configured.</p>
-    <h2>Configuration Details:</h2>
-    <ul>
-        <li>Application URL: http://${EC2_PUBLIC_IP}:3000</li>
-        <li>API Endpoint: http://${EC2_PUBLIC_IP}:3000/api</li>
-        <li>Database: ${RDS_ENDPOINT}</li>
-    </ul>
-    <p class="info">If you can see this page, your server is running!</p>
-</body>
-</html>
+# Create status check script
+cat > /home/ec2-user/check-status.sh << 'EOF'
+#!/bin/bash
+echo "Node.js version: $(node -v)"
+echo "NPM version: $(npm -v)"
+echo "PM2 status:"
+pm2 status
+echo "Application logs:"
+pm2 logs kappy --lines 20
 EOF
+
+chmod +x /home/ec2-user/check-status.sh
+chown ec2-user:ec2-user /home/ec2-user/check-status.sh
 
 # Log completion
-echo "Setup completed at $(date)" >> /var/log/kappy-setup.log
+sudo echo "Setup completed at $(date)" >> /var/log/kappy-setup.log
+echo "To check application status, run: ./check-status.sh"
 
 #---------------------------------------------------------
 # Final Instructions

@@ -112,9 +112,31 @@ This guide provides step-by-step instructions for setting up AWS services using 
 6. Click "Launch instance"
 
 ### Step 3: Complete Setup
-1. Wait for instance to launch and get public IP
-2. Update EC2_PUBLIC_IP in user data script with actual IP
-3. Restart the instance to apply changes
+1. Wait for instance to launch (2-3 minutes):
+   - Go to EC2 Dashboard
+   - Select your instance
+   - Wait for "Instance state" to show "Running"
+   - Wait for "Status check" to show "2/2 checks passed"
+
+2. Get the public IP:
+   - In EC2 Dashboard, select your instance
+   - Look for "Public IPv4 address" in the details panel
+   - Copy this IP address
+
+3. Update the EC2_PUBLIC_IP in user data:
+   - Go to EC2 Dashboard
+   - Select your instance
+   - Click "Actions" > "Instance Settings" > "Edit user data"
+   - Find the line: EC2_PUBLIC_IP="your-ip"
+   - Replace "your-ip" with the actual IP you copied
+   - Click "Save"
+
+4. Restart the instance:
+   - Select your instance
+   - Click "Instance state" > "Stop instance"
+   - Wait for instance to stop completely (1-2 minutes)
+   - Click "Instance state" > "Start instance"
+   - Wait for instance to start and pass status checks (2-3 minutes)
 
 ## Verification
 

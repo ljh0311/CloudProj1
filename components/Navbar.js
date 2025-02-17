@@ -30,7 +30,7 @@ import { useCart } from './CartContext';
 import { useSession, signOut } from 'next-auth/react';
 
 // Navigation link component with consistent styling
-const NavLink = ({ href, children }) => (
+const NavLink = ({ href, children, icon }) => (
   <LinkBox>
     <LinkOverlay as={NextLink} href={href}>
       <Text
@@ -46,7 +46,10 @@ const NavLink = ({ href, children }) => (
         cursor="pointer"
         color="white"
         fontWeight="medium"
+        display="flex"
+        alignItems="center"
       >
+        {icon && <Text as="span" mr={2}>{icon}</Text>}
         {children}
       </Text>
     </LinkOverlay>
@@ -197,6 +200,7 @@ const MobileNav = ({ isOpen, links }) => (
     >
       {links.map((link) => (
         <NavLink key={link.href} href={link.href}>
+          {link.icon && <Text as="span" mr={2}>{link.icon}</Text>}
           {link.label}
         </NavLink>
       ))}
@@ -221,6 +225,7 @@ export default function Navbar() {
     { href: "/", label: "Home" },
     { href: "/shop", label: "Shop" },
     { href: "/about", label: "About" },
+    { href: "/dev/dashboard", label: "Dev Tools", icon: "🛠️" },
     ...(isAdmin ? [{ href: "/admin/dashboard", label: "Admin Dashboard" }] : [])
   ];
 
@@ -280,6 +285,7 @@ export default function Navbar() {
           >
             {navLinks.map((link) => (
               <NavLink key={link.href} href={link.href}>
+                {link.icon && <Text as="span" mr={2}>{link.icon}</Text>}
                 {link.label}
               </NavLink>
             ))}

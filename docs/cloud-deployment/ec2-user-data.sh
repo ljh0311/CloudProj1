@@ -19,10 +19,15 @@
 #---------------------------------------------------------
 # Configuration Variables - EDIT THESE VALUES
 #---------------------------------------------------------
-RDS_ENDPOINT="database1.xxxxxxxxxxxx.ap-southeast-2.rds.amazonaws.com"  # Your RDS endpoint
-RDS_PASSWORD="your-password-here"                                       # Your RDS password
-EC2_PUBLIC_IP="3.26.102.46"                                           # Your EC2 public IP
-NEXTAUTH_SECRET="your-secret-here"                                     # Generate a secure secret
+RDS_ENDPOINT="database1.czsa24cac7y5.us-east-1.rds.amazonaws.com"  # Your RDS endpoint
+RDS_PASSWORD="KappyAdmin"                                       # Your RDS password
+EC2_PUBLIC_IP="44.202.255.254"                                           # Your EC2 public IP
+# To generate a secure NEXTAUTH_SECRET:
+# 1. Open a terminal
+# 2. Run: openssl rand -base64 32
+# 3. Copy the output
+# 4. Paste it below between the quotes
+NEXTAUTH_SECRET="dKq2L3q/7ZZzXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"     # Generated using openssl rand -base64 32
 
 #---------------------------------------------------------
 # System Updates and Software Installation

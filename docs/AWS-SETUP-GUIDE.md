@@ -62,10 +62,26 @@ This guide provides step-by-step instructions for setting up AWS services using 
 2. Replace these values:
    ```bash
    RDS_ENDPOINT="your-rds-endpoint"    # From RDS Step 3
-   RDS_PASSWORD="your-rds-password"    # Password you set in RDS
+   RDS_PASSWORD="KappyAdmin"           # Password you set in RDS
    EC2_PUBLIC_IP="your-ip"            # Leave empty, will get after launch
-   NEXTAUTH_SECRET="generate-secret"   # Generate a secure random string
+   
+   # Generate a new secret using one of these methods:
+   # Method 1 (Windows PowerShell):
+   # [System.Convert]::ToBase64String([System.Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
+   #
+   # Method 2 (Linux/Mac Terminal):
+   # openssl rand -base64 32
+   #
+   # Method 3 (Simple but less secure):
+   # Use a random string generator website, make it at least 32 characters
+   NEXTAUTH_SECRET="your-generated-secret"
    ```
+
+3. Important notes about NEXTAUTH_SECRET:
+   - Generate a new one for each deployment
+   - Keep it private and secure
+   - Don't reuse secrets between deployments
+   - Make it at least 32 characters long
 
 ### Step 2: Launch EC2 Instance
 1. Go to AWS Console → EC2 → Launch instance

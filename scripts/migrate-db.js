@@ -1,3 +1,8 @@
+require('dotenv').config();
+const mysql = require('mysql2/promise');
+const fs = require('fs').promises;
+const path = require('path');
+
 /**
  * Consolidated Database Migration Script for KAPPY Project
  * 
@@ -18,10 +23,6 @@
  * - DB_PASSWORD: Database password
  * - DB_NAME: Database name
  */
-
-const mysql = require('mysql2/promise');
-const fs = require('fs').promises;
-const path = require('path');
 
 // Database configuration
 const dbConfig = {

@@ -15,7 +15,8 @@ import {
     StatNumber,
     StatHelpText,
     Icon,
-    Grid
+    Grid,
+    Button
 } from '@chakra-ui/react';
 import Head from 'next/head';
 import { motion } from 'framer-motion';
@@ -23,6 +24,7 @@ import Navbar from '../components/Navbar';
 import AnimatedBackground from '../components/AnimatedBackground';
 import { useState, useEffect } from 'react';
 import { FaCheckCircle, FaTools, FaClock } from 'react-icons/fa';
+import { useRouter } from 'next/router';
 
 const MotionBox = motion(Box);
 
@@ -32,79 +34,115 @@ const initialFeatures = [
         feature: "Homepage",
         description: "Main landing page with brand introduction and featured sections",
         details: [
-            "Brand showcase ✓",
-            "Hero section ✓",
-            "Feature cards ✓",
-            "Responsive design ✓",
-            "Pending: Final content review"
+            { text: "Brand showcase ✓", link: "/" },
+            { text: "Hero section ✓", link: "/" },
+            { text: "Feature cards ✓", link: "/" },
+            { text: "Responsive design ✓", link: "/" },
+            { text: "Content review ✓", link: "/" }
         ]
     },
     {
         feature: "Shop Page",
         description: "Product listing and filtering functionality",
         details: [
-            "Product grid ✓",
-            "Search functionality ✓",
-            "Filters ✓",
-            "Size availability display ✓",
-            "Add to cart buttons ✓",
-            "Toast notifications ✓",
-            "Pending: Backend integration",
-            "Pending: Persistent cart storage"
+            { text: "Product grid ✓", link: "/shop" },
+            { text: "Search functionality ✓", link: "/shop" },
+            { text: "Filters ✓", link: "/shop" },
+            { text: "Size availability display ✓", link: "/shop" },
+            { text: "Add to cart buttons ✓", link: "/shop" },
+            { text: "Toast notifications ✓", link: "/shop" },
+            { text: "Backend integration ✓", link: "/shop" },
+            { text: "Persistent cart storage ✓", link: "/shop" }
         ]
     },
     {
         feature: "Product Details",
         description: "Individual product view and purchase functionality",
         details: [
-            "Product display ✓",
-            "Image gallery ✓",
-            "Size selection ✓",
-            "Stock tracking ✓",
-            "Add to cart ✓",
-            "Toast notifications ✓",
-            "Pending: Reviews section"
+            { text: "Product display ✓", link: "/product/1" },
+            { text: "Image gallery ✓", link: "/product/1" },
+            { text: "Size selection ✓", link: "/product/1" },
+            { text: "Stock tracking ✓", link: "/product/1" },
+            { text: "Add to cart ✓", link: "/product/1" },
+            { text: "Toast notifications ✓", link: "/product/1" },
+            { text: "Dynamic routing ✓", link: "/product/1" },
+            { text: "Pending: Reviews section", link: "/product/1" }
         ]
     },
     {
         feature: "Shopping Cart",
         description: "Cart functionality and checkout process",
         details: [
-            "Cart UI design ✓",
-            "Add/Remove items ✓",
-            "Price calculation ✓",
-            "Local storage persistence ✓",
-            "Cart count in navbar ✓",
-            "Quantity management ✓",
-            "Pending: Checkout process",
-            "Pending: Payment integration",
-            "Pending: Database integration"
+            { text: "Cart UI design ✓", link: "/checkout" },
+            { text: "Add/Remove items ✓", link: "/checkout" },
+            { text: "Price calculation ✓", link: "/checkout" },
+            { text: "Local storage persistence ✓", link: "/checkout" },
+            { text: "Cart count in navbar ✓", link: "/checkout" },
+            { text: "Quantity management ✓", link: "/checkout" },
+            { text: "Checkout process ✓", link: "/checkout" },
+            { text: "Order processing ✓", link: "/checkout" },
+            { text: "Database integration ✓", link: "/checkout" }
         ]
     },
     {
         feature: "Authentication",
         description: "User authentication and account management",
         details: [
-            "Login form ✓",
-            "Form validation ✓",
-            "Registration form ✓",
-            "Session management ✓",
-            "Pending: Password recovery",
-            "Pending: Social login",
-            "Pending: User profiles"
+            { text: "Login form ✓", link: "/profile" },
+            { text: "Form validation ✓", link: "/profile" },
+            { text: "Registration form ✓", link: "/profile" },
+            { text: "Session management ✓", link: "/profile" },
+            { text: "User profiles ✓", link: "/profile" },
+            { text: "Password hashing ✓", link: "/profile" },
+            { text: "Role-based access ✓", link: "/profile" },
+            { text: "Protected routes ✓", link: "/profile" },
+            { text: "Pending: Password recovery", link: "/profile" },
+            { text: "Pending: Social login", link: "/profile" }
         ]
     },
     {
         feature: "Database & Storage",
         description: "Data persistence and management",
         details: [
-            "Schema design ✓",
-            "Migration scripts ✓",
-            "Products JSON structure ✓",
-            "Local storage implementation ✓",
-            "Pending: RDS setup",
-            "Pending: S3 integration",
-            "Pending: Backup system"
+            { text: "Schema design ✓", link: "/admin/dashboard" },
+            { text: "Migration scripts ✓", link: "/admin/dashboard" },
+            { text: "Products JSON structure ✓", link: "/admin/dashboard" },
+            { text: "Users JSON structure ✓", link: "/admin/dashboard" },
+            { text: "Orders JSON structure ✓", link: "/admin/dashboard" },
+            { text: "Local storage implementation ✓", link: "/admin/dashboard" },
+            { text: "RDS setup documentation ✓", link: "/admin/dashboard" },
+            { text: "Backup system ✓", link: "/admin/dashboard" },
+            { text: "Pending: RDS implementation", link: "/admin/dashboard" }
+        ]
+    },
+    {
+        feature: "Admin Dashboard",
+        description: "Administrative features and management",
+        details: [
+            { text: "Admin authentication ✓", link: "/admin/dashboard" },
+            { text: "Product management ✓", link: "/admin/dashboard" },
+            { text: "User management ✓", link: "/admin/dashboard" },
+            { text: "Stock management ✓", link: "/admin/dashboard" },
+            { text: "Admin-only routes ✓", link: "/admin/dashboard" },
+            { text: "Data visualization ✓", link: "/admin/dashboard" }
+        ]
+    },
+    {
+        feature: "Cloud Deployment",
+        description: "AWS deployment and infrastructure setup",
+        details: [
+            { text: "EC2 setup documentation ✓", link: "/admin/dashboard" },
+            { text: "RDS setup documentation ✓", link: "/admin/dashboard" },
+            { text: "Environment configuration ✓", link: "/admin/dashboard" },
+            { text: "Security group setup documentation ✓", link: "/admin/dashboard" },
+            { text: "Backup strategy documentation ✓", link: "/admin/dashboard" },
+            { text: "Monitoring setup documentation ✓", link: "/admin/dashboard" },
+            { text: "Deployment scripts ✓", link: "/admin/dashboard" },
+            { text: "Pending: EC2 server deployment", link: "/admin/dashboard" },
+            { text: "Pending: RDS database deployment", link: "/admin/dashboard" },
+            { text: "Pending: Load balancing", link: "/admin/dashboard" },
+            { text: "Pending: Auto-scaling", link: "/admin/dashboard" },
+            { text: "Pending: Production environment setup", link: "/admin/dashboard" }
         ]
     }
 ];
@@ -116,11 +154,12 @@ export default function DevelopmentProgress() {
         completedFeatures: 0,
         averageProgress: 0,
     });
+    const router = useRouter();
 
     // Function to calculate progress and status
     const calculateProgress = (details) => {
         const totalItems = details.length;
-        const completedItems = details.filter(item => item.includes('✓')).length;
+        const completedItems = details.filter(item => item.text.includes('✓')).length;
         const progress = Math.round((completedItems / totalItems) * 100);
         
         let status;
@@ -153,6 +192,13 @@ export default function DevelopmentProgress() {
         setImplementationProgress(updatedProgress);
         setSummary({ totalFeatures, completedFeatures, averageProgress });
     }, []);
+
+    // Add this function to handle navigation
+    const handleFeatureClick = (link) => {
+        if (link) {
+            router.push(link);
+        }
+    };
 
     return (
         <>
@@ -268,7 +314,7 @@ export default function DevelopmentProgress() {
 
                             {/* Progress Grid */}
                             <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={8}>
-                                {implementationProgress.map((item, index) => (
+                                {implementationProgress.map((feature, index) => (
                                     <MotionBox
                                         key={index}
                                         p={8}
@@ -289,38 +335,46 @@ export default function DevelopmentProgress() {
                                         <VStack align="stretch" spacing={6}>
                                             <HStack justify="space-between" align="center">
                                                 <Heading size="md" color="white">
-                                                    {item.feature}
+                                                    {feature.feature}
                                                 </Heading>
                                                 <Badge
                                                     colorScheme={
-                                                        item.progress >= 90 ? "green" :
-                                                        item.progress >= 70 ? "yellow" :
-                                                        item.progress >= 40 ? "orange" : "red"
+                                                        feature.status === "Near Completion"
+                                                            ? "green"
+                                                            : feature.status === "In Progress"
+                                                            ? "yellow"
+                                                            : feature.status === "In Development"
+                                                            ? "orange"
+                                                            : "red"
                                                     }
                                                     px={3}
                                                     py={1}
                                                     borderRadius="full"
                                                 >
-                                                    {item.status}
+                                                    {feature.status}
                                                 </Badge>
                                             </HStack>
                                             
                                             <Text color="whiteAlpha.800" fontSize="md">
-                                                {item.description}
+                                                {feature.description}
                                             </Text>
 
                                             <Box>
                                                 <Tooltip 
-                                                    label={`${item.progress}% complete`}
+                                                    label={`${feature.progress}% complete`}
                                                     hasArrow
                                                     placement="top"
                                                 >
                                                     <ChakraProgress 
-                                                        value={item.progress} 
+                                                        value={feature.progress} 
                                                         colorScheme={
-                                                            item.progress >= 90 ? "green" :
-                                                            item.progress >= 70 ? "yellow" :
-                                                            item.progress >= 40 ? "orange" : "red"
+                                                            feature.progress >= 90
+                                                                ? "green"
+                                                                : feature.progress >= 70
+                                                                ? "yellow"
+                                                                : feature.progress >= 40
+                                                                ? "orange"
+                                                                : "red"
                                                         }
                                                         borderRadius="full"
                                                         bg="whiteAlpha.200"
@@ -330,27 +384,22 @@ export default function DevelopmentProgress() {
                                             </Box>
 
                                             <VStack align="stretch" spacing={2}>
-                                                {item.details.map((detail, idx) => (
-                                                    <HStack 
-                                                        key={idx} 
-                                                        spacing={3}
-                                                        bg={detail.includes('✓') ? "whiteAlpha.100" : "transparent"}
-                                                        p={2}
-                                                        borderRadius="md"
+                                                {feature.details.map((detail, idx) => (
+                                                    <Button
+                                                        key={idx}
+                                                        variant="ghost"
+                                                        justifyContent="flex-start"
+                                                        color="whiteAlpha.900"
+                                                        onClick={() => handleFeatureClick(detail.link)}
+                                                        leftIcon={detail.text.includes('✓') ? <FaCheckCircle color="green" /> : detail.text.includes('Pending') ? <FaClock color="orange" /> : <FaTools color="yellow" />}
+                                                        _hover={{
+                                                            bg: "whiteAlpha.200",
+                                                            transform: "translateX(5px)"
+                                                        }}
+                                                        transition="all 0.2s"
                                                     >
-                                                        <Icon 
-                                                            as={detail.includes('✓') ? FaCheckCircle : FaClock}
-                                                            color={detail.includes('✓') ? "green.400" : "yellow.400"}
-                                                            w={4}
-                                                            h={4}
-                                                        />
-                                                        <Text 
-                                                            color="whiteAlpha.900"
-                                                            fontSize="sm"
-                                                        >
-                                                            {detail.replace('✓', '').replace('Pending: ', '')}
-                                                        </Text>
-                                                    </HStack>
+                                                        {detail.text}
+                                                    </Button>
                                                 ))}
                                             </VStack>
                                         </VStack>

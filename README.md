@@ -8,6 +8,7 @@ A modern e-commerce platform specializing in vintage streetwear, built with Next
 
 ## 📋 Table of Contents
 - [Quick Start](#-quick-start)
+- [System Requirements](#-system-requirements)
 - [Features](#-features)
 - [Project Structure](#-project-structure)
 - [Tech Stack](#-tech-stack)
@@ -22,6 +23,7 @@ A modern e-commerce platform specializing in vintage streetwear, built with Next
 - Node.js (v14 or higher)
 - npm (Node Package Manager)
 - MySQL (for local development)
+- Redis (for caching)
 
 ### Installation
 ```bash
@@ -41,45 +43,139 @@ npm run dev
 
 Visit [http://localhost:3000](http://localhost:3000) to view the application.
 
-## ☁️ Cloud Deployment
+## 🎯 System Requirements
 
-### AWS Setup Requirements
-- AWS Account with necessary permissions
-- Amazon EC2 instance (t2.micro or higher)
-- Amazon RDS MySQL instance
-- Security groups configured for ports 3000 (app) and 3306 (MySQL)
+### Functionality (** - Highest Priority)
+- [x] User Authentication System
+  - NextAuth implementation with JWT
+  - Role-based access control
+  - Secure password handling with bcrypt
+- [x] Product Management
+  - Dynamic product catalog
+  - Real-time inventory tracking
+  - Category management
+- [x] Shopping Cart System
+  - Real-time updates
+  - Persistent storage
+  - Multi-item management
+- [x] Order Processing
+  - Order creation and tracking
+  - Status updates
+  - Order history
+- [x] Admin Dashboard
+  - User management
+  - Product management
+  - Order oversight
 
-### Deployment Steps
+### Scalability (* - Priority)
+- [ ] Database Implementation
+  ```javascript
+  // utils/db.js
+  import mysql from 'mysql2/promise';
+  
+  const pool = mysql.createPool({
+      host: process.env.DB_HOST,
+      user: process.env.DB_USER,
+      password: process.env.DB_PASSWORD,
+      database: process.env.DB_NAME,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0
+  });
+  ```
+- [ ] Caching System
+  ```javascript
+  // utils/cache.js
+  import Redis from 'ioredis';
+  
+  const redis = new Redis({
+      host: process.env.REDIS_HOST,
+      port: process.env.REDIS_PORT
+  });
+  ```
+- [ ] Content Delivery Network (CDN)
+- [ ] Load Balancing
 
-1. **Launch EC2 Instance**
-   - Use Amazon Linux 2 AMI
-   - In "Advanced Details" > "User data", paste the contents of `scripts/ec2-setup.sh`
-   - Configure security group to allow inbound traffic on port 3000
+### Elasticity (* - Priority)
+- [ ] Auto-scaling Configuration
+  ```yaml
+  # aws/auto-scaling.yml
+  AutoScalingGroup:
+    MinSize: 2
+    MaxSize: 10
+    DesiredCapacity: 2
+    HealthCheckType: ELB
+    HealthCheckGracePeriod: 300
+  ```
+- [ ] Container Orchestration
+- [ ] Elastic Load Balancer
+- [ ] Microservices Architecture
 
-2. **Configure RDS**
-   - Launch MySQL RDS instance
-   - Configure security group to allow inbound traffic from EC2 on port 3306
-   - Note down the endpoint, username, and password
+### Reliability (* - Priority)
+- [ ] Health Monitoring
+  ```javascript
+  // pages/api/health.js
+  export default async function handler(req, res) {
+      try {
+          await pool.query('SELECT 1');
+          res.status(200).json({
+              status: 'healthy',
+              timestamp: new Date().toISOString()
+          });
+      } catch (error) {
+          res.status(503).json({
+              status: 'unhealthy',
+              error: error.message
+          });
+      }
+  }
+  ```
+- [ ] Automated Backups
+- [ ] Error Handling
+- [ ] Circuit Breakers
+- [ ] Retry Mechanisms
 
-3. **Environment Setup**
-   ```bash
-   # SSH into your EC2 instance
-   cd /home/ec2-user/app/CloudProj1
-   
-   # Edit environment variables
-   nano .env
-   ```
-
-4. **Database Migration**
-   ```bash
-   # Run the migration script
-   node scripts/migrate-db.js
-   ```
-
-5. **Verify Deployment**
-   - Visit `http://your-ec2-public-ip:3000`
-   - Check application logs: `pm2 logs kappy`
-   - Monitor status: `pm2 status`
+### Security (* - Priority)
+- [x] Authentication & Authorization
+- [ ] Rate Limiting
+  ```javascript
+  // middleware/rateLimit.js
+  import rateLimit from 'express-rate-limit';
+  
+  export const apiLimiter = rateLimit({
+      windowMs: 15 * 60 * 1000,
+      max: 100
+  });
+  ```
+- [ ] Security Headers
+  ```javascript
+  // next.config.js
+  module.exports = {
+      async headers() {
+          return [
+              {
+                  source: '/:path*',
+                  headers: [
+                      {
+                          key: 'X-Frame-Options',
+                          value: 'DENY'
+                      },
+                      {
+                          key: 'X-Content-Type-Options',
+                          value: 'nosniff'
+                      },
+                      {
+                          key: 'Strict-Transport-Security',
+                          value: 'max-age=31536000; includeSubDomains'
+                      }
+                  ]
+              }
+          ];
+      }
+  };
+  ```
+- [ ] CSRF Protection
+- [ ] XSS Prevention
 
 ## ✨ Features
 
@@ -126,6 +222,9 @@ CloudProj1/
 - **Animations**: [Framer Motion](https://www.framer.com/motion/)
 - **State Management**: [React Context](https://reactjs.org/docs/context.html)
 - **Form Handling**: [React Hook Form](https://react-hook-form.com/)
+- **Database**: MySQL (via RDS)
+- **Caching**: Redis
+- **Cloud Provider**: AWS
 
 ## 💻 Development
 
@@ -149,21 +248,26 @@ Create a `.env.local` file with the following variables:
 
 ```env
 # App Configuration
-NODE_ENV=production
+NODE_ENV=development
 PORT=3000
 
-# Database Configuration (AWS RDS)
-DB_HOST=your-rds-endpoint.region.rds.amazonaws.com
-DB_USER=your_rds_username
-DB_PASSWORD=your_rds_password
+# Database Configuration
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=your_password
 DB_NAME=kappy_db
 
+# Redis Configuration
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=your_redis_password
+
 # Authentication
-NEXTAUTH_URL=http://your_ec2_public_ip:3000
+NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=your_nextauth_secret
 
 # API Configuration
-NEXT_PUBLIC_API_URL=http://your_ec2_public_ip:3000/api
+NEXT_PUBLIC_API_URL=http://localhost:3000/api
 ```
 
 ## 🎯 Project Tasks & Progress

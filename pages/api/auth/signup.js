@@ -1,5 +1,5 @@
-import { readJsonFile, writeJsonFile } from '../../../utils/jsonOperations';
 import bcrypt from 'bcryptjs';
+import { createMySQLUser, getMySQLUserByEmail, addUserFallback, getUserByEmailFallback } from '../../../utils/db';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -18,37 +18,39 @@ export default async function handler(req, res) {
             return res.status(400).json({ message: 'Password must be at least 6 characters' });
         }
 
-        // Read existing users
-        const { users } = await readJsonFile('users.json');
+        // Check if user exists in MySQL first
+        let existingUser = await getMySQLUserByEmail(email);
+        
+        // If MySQL check fails, check JSON
+        if (!existingUser) {
+            existingUser = await getUserByEmailFallback(email);
+        }
 
-        // Check if user already exists
-        if (users.some(user => user.email.toLowerCase() === email.toLowerCase())) {
+        if (existingUser) {
             return res.status(400).json({ message: 'Email already registered' });
         }
 
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 12);
 
-        // Create new user
+        // Create new user object
         const newUser = {
-            id: users.length + 1,
             name,
             email: email.toLowerCase(),
             password: hashedPassword,
-            role: 'customer',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            orders: [],
-            cart: []
+            role: 'customer'
         };
 
-        // Add user to database
-        const updatedUsers = {
-            users: [...users, newUser],
-            lastId: newUser.id
-        };
-
-        await writeJsonFile('users.json', updatedUsers);
+        try {
+            // Try to create user in MySQL first
+            const userId = await createMySQLUser(newUser);
+            newUser.id = userId;
+        } catch (dbError) {
+            console.error('MySQL creation failed, falling back to JSON:', dbError);
+            // If MySQL fails, fall back to JSON
+            const createdUser = await addUserFallback(newUser);
+            newUser.id = createdUser.id;
+        }
 
         // Return success without password
         const { password: _, ...userWithoutPassword } = newUser;

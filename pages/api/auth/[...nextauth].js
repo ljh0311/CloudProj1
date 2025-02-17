@@ -1,7 +1,7 @@
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import { readJsonFile } from '../../../utils/jsonOperations';
 import bcrypt from 'bcryptjs';
+import { getMySQLUserByEmail, getUserByEmailFallback } from '../../../utils/db';
 
 export const authOptions = {
     providers: [
@@ -13,8 +13,14 @@ export const authOptions = {
             },
             async authorize(credentials, req) {
                 try {
-                    const { users } = await readJsonFile('users.json');
-                    const user = users.find(u => u.email.toLowerCase() === credentials.email.toLowerCase());
+                    // First try MySQL
+                    let user = await getMySQLUserByEmail(credentials.email);
+                    
+                    // If MySQL fails, fallback to JSON
+                    if (!user) {
+                        console.log('User not found in MySQL, trying JSON fallback...');
+                        user = await getUserByEmailFallback(credentials.email);
+                    }
 
                     if (!user) {
                         console.log('No user found with email:', credentials.email);
@@ -83,32 +89,15 @@ export const authOptions = {
         }
     },
     callbacks: {
-        async jwt({ token, user, trigger, session }) {
+        async jwt({ token, user }) {
             if (user) {
                 token.role = user.role;
-                token.id = user.id;
-                token.image = user.image;
             }
-            
-            if (trigger === "update" && session) {
-                token.name = session.name;
-                token.image = session.image;
-            }
-
-            // Add timestamp for additional security
-            token.iat = Math.floor(Date.now() / 1000);
-            token.exp = Math.floor(Date.now() / 1000) + (24 * 60 * 60); // 24 hours
-            
             return token;
         },
         async session({ session, token }) {
             if (token) {
                 session.user.role = token.role;
-                session.user.id = token.id;
-                session.user.image = token.image;
-
-                // Add session expiry
-                session.expires = new Date(token.exp * 1000).toISOString();
             }
             return session;
         }

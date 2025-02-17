@@ -1,15 +1,8 @@
-import { getSession } from 'next-auth/react';
 import fs from 'fs/promises';
 import path from 'path';
 
 export default async function handler(req, res) {
     try {
-        // Check authentication and admin role
-        const session = await getSession({ req });
-        if (!session || session.user.role !== 'admin') {
-            return res.status(401).json({ message: 'Unauthorized' });
-        }
-
         // Read JSON files
         const usersData = JSON.parse(
             await fs.readFile(path.join(process.cwd(), 'data', 'users.json'), 'utf8')

@@ -302,17 +302,7 @@ export default function DevDashboard() {
 }
 
 export async function getServerSideProps(context) {
-    const session = await getSession(context);
-    
-    if (!session || session.user.role !== 'admin') {
-        return {
-            redirect: {
-                destination: '/auth',
-                permanent: false,
-            },
-        };
-    }
-
+    // No session check needed - dashboard is public
     return {
         props: {}
     };

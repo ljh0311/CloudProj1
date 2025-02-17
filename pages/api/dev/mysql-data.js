@@ -1,14 +1,7 @@
-import { getSession } from 'next-auth/react';
 import mysql from 'mysql2/promise';
 
 export default async function handler(req, res) {
     try {
-        // Check authentication and admin role
-        const session = await getSession({ req });
-        if (!session || session.user.role !== 'admin') {
-            return res.status(401).json({ message: 'Unauthorized' });
-        }
-
         // Create MySQL connection
         const connection = await mysql.createConnection({
             host: process.env.DB_HOST,

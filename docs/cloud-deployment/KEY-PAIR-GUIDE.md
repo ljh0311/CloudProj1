@@ -3,36 +3,48 @@
 ## Creating and Managing EC2 Key Pair
 
 ### Step 1: Create Key Pair in AWS Console
+
 1. Log in to AWS Management Console
 2. Navigate to EC2 Dashboard
 3. In the left sidebar, under "Network & Security", click "Key Pairs"
 4. Click "Create key pair"
 5. Configure the key pair:
    - Name: `kappy-key-pair`
+
    - Key pair type: RSA
    - Private key file format: .pem
    - Tags: Optional (can skip in free tier)
 6. Click "Create key pair"
 7. The .pem file will automatically download to your computer
    - Default name will be `kappy-key-pair.pem`
+
    - **IMPORTANT**: This is your only chance to download the private key file
 
 ### Step 2: Secure Your Key Pair (Windows)
+
 1. Create a secure directory for your key:
-   ```powershell
+   
+
+```powershell
    # Create .ssh directory if it doesn't exist
    mkdir -p "$env:USERPROFILE\.ssh"
    ```
 
 2. Move the key pair file:
    - Move `kappy-key-pair.pem` from your Downloads folder to `C:\Users\YourUsername\.ssh\`
+
    - You can do this via File Explorer or PowerShell:
-     ```powershell
+
+     
+
+```powershell
      Move-Item "$env:USERPROFILE\Downloads\kappy-key-pair.pem" "$env:USERPROFILE\.ssh\kappy-key-pair.pem"
      ```
 
 3. Set correct permissions:
-   ```powershell
+   
+
+```powershell
    # Remove inheritance and all existing permissions
    icacls "$env:USERPROFILE\.ssh\kappy-key-pair.pem" /inheritance:r
    # Add read permission only for current user
@@ -40,6 +52,7 @@
    ```
 
 ### Step 3: Launch EC2 Instance with Key Pair
+
 1. Go to EC2 Dashboard
 2. Click "Launch Instance"
 3. Basic configuration:
@@ -67,7 +80,10 @@
    - Scroll to "User data"
    - Select "As text"
    - Copy and paste this initialization script:
-     ```bash
+
+     
+
+```bash
      #!/bin/bash
      
      # Update system packages
@@ -172,6 +188,7 @@
 8. Click "Launch instance"
 
 ### Step 4: Connect to Your Instance
+
 1. Wait for instance to be running and status checks to pass
 
 2. Get your instance's public IP:
@@ -186,6 +203,7 @@
 4. If you see a warning about unprotected key file, fix permissions as shown in Step 2
 
 ### Important Safety Rules
+
 1. Never:
    - Share your .pem file
    - Commit the .pem file to version control
@@ -203,8 +221,11 @@
    - Free tier allows you to create multiple key pairs at no cost
 
 ### Troubleshooting Common Issues
+
 1. "Permission denied" error:
-   ```powershell
+   
+
+```powershell
    # Fix permissions
    icacls "$env:USERPROFILE\.ssh\kappy-key-pair.pem" /inheritance:r /grant:r "$($env:USERNAME):(R)"
    ```

@@ -1,6 +1,7 @@
 # Comprehensive AWS Deployment Guide for KAPPY E-commerce
 
 ## Table of Contents
+
 1. [Prerequisites](#prerequisites)
 2. [Infrastructure Setup](#infrastructure-setup)
 3. [Database Setup](#database-setup)
@@ -13,27 +14,32 @@
 ## Prerequisites
 
 ### Required Accounts and Tools
-- AWS Account with administrative access
-- Domain name (for production deployment)
-- Git installed locally
-- Node.js v14 or higher
-- MySQL Workbench
-- AWS CLI configured locally
+
+* AWS Account with administrative access
+* Domain name (for production deployment)
+* Git installed locally
+* Node.js v14 or higher
+* MySQL Workbench
+* AWS CLI configured locally
 
 ### Required AWS Services
-- EC2 (Application hosting)
-- RDS (Database)
-- S3 (Static file storage)
-- CloudFront (CDN)
-- Route 53 (DNS management)
-- Certificate Manager (SSL/TLS)
-- CloudWatch (Monitoring)
+
+* EC2 (Application hosting)
+* RDS (Database)
+* S3 (Static file storage)
+* CloudFront (CDN)
+* Route 53 (DNS management)
+* Certificate Manager (SSL/TLS)
+* CloudWatch (Monitoring)
 
 ## Infrastructure Setup
 
 ### 1. VPC Configuration
+
 1. Create VPC:
-   ```bash
+   
+
+```bash
    aws ec2 create-vpc --cidr-block 10.0.0.0/16 --tag-specifications 'ResourceType=vpc,Tags=[{Key=Name,Value=kappy-vpc}]'
    ```
 
@@ -45,19 +51,23 @@
 3. Configure Internet Gateway and NAT Gateway
 
 ### 2. EC2 Instance Setup
+
 1. Launch EC2 instance:
    - AMI: Amazon Linux 2023
    - Instance Type: t2.micro (development) / t2.small (production)
    - VPC: kappy-vpc
    - Public subnet
    - Security group:
+
      - SSH (22) from your IP
      - HTTP (80) from anywhere
      - HTTPS (443) from anywhere
      - Custom TCP (3000) from anywhere
 
 2. Configure security group:
-   ```bash
+   
+
+```bash
    aws ec2 create-security-group \
      --group-name kappy-ec2-sg \
      --description "Security group for KAPPY EC2 instances"
@@ -70,6 +80,7 @@
    ```
 
 ### 3. Load Balancer Setup
+
 1. Create Application Load Balancer:
    - Scheme: internet-facing
    - IP address type: ipv4
@@ -86,8 +97,11 @@
 ## Database Setup
 
 ### 1. RDS Instance
+
 1. Create parameter group:
-   ```bash
+   
+
+```bash
    aws rds create-db-parameter-group \
      --db-parameter-group-name kappy-mysql-params \
      --db-parameter-group-family mysql8.0 \
@@ -95,7 +109,9 @@
    ```
 
 2. Launch RDS instance:
-   ```bash
+   
+
+```bash
    aws rds create-db-instance \
      --db-instance-identifier kappy-db \
      --db-instance-class db.t3.micro \
@@ -111,8 +127,11 @@
    ```
 
 ### 2. Database Migration
+
 1. Create schema:
-   ```sql
+   
+
+```sql
    CREATE TABLE users (
        id VARCHAR(36) PRIMARY KEY,
        email VARCHAR(255) UNIQUE NOT NULL,
@@ -150,15 +169,20 @@
    ```
 
 2. Run migration script:
-   ```bash
+   
+
+```bash
    node scripts/migrate-db.js
    ```
 
 ## Storage Configuration
 
 ### 1. S3 Bucket Setup
+
 1. Create bucket:
-   ```bash
+   
+
+```bash
    aws s3api create-bucket \
      --bucket kappy-assets \
      --region ap-southeast-1 \
@@ -166,7 +190,9 @@
    ```
 
 2. Configure CORS:
-   ```json
+   
+
+```json
    {
        "CORSRules": [
            {
@@ -180,7 +206,9 @@
    ```
 
 3. Create bucket policy:
-   ```json
+   
+
+```json
    {
        "Version": "2012-10-17",
        "Statement": [
@@ -196,6 +224,7 @@
    ```
 
 ### 2. CloudFront Distribution
+
 1. Create distribution:
    - Origin domain: kappy-assets.s3.ap-southeast-1.amazonaws.com
    - Viewer protocol policy: Redirect HTTP to HTTPS
@@ -207,15 +236,20 @@
 ## Application Deployment
 
 ### 1. Environment Setup
+
 1. Install dependencies:
-   ```bash
+   
+
+```bash
    sudo yum update -y
    sudo yum install -y git nodejs npm mysql
    sudo npm install -g pm2
    ```
 
 2. Configure environment variables:
-   ```bash
+   
+
+```bash
    cat > .env << EOF
    # Database
    DB_HOST=your-rds-endpoint
@@ -237,8 +271,11 @@
    ```
 
 ### 2. Application Setup
+
 1. Clone and build:
-   ```bash
+   
+
+```bash
    git clone https://github.com/your-repo/kappy.git
    cd kappy
    npm install
@@ -246,15 +283,20 @@
    ```
 
 2. Configure PM2:
-   ```bash
+   
+
+```bash
    pm2 start npm --name "kappy" -- start
    pm2 startup
    pm2 save
    ```
 
 ### 3. Nginx Setup
+
 1. Install and configure:
-   ```bash
+   
+
+```bash
    sudo yum install -y nginx
    
    sudo cat > /etc/nginx/conf.d/kappy.conf << EOF
@@ -275,7 +317,9 @@
    ```
 
 2. Enable and start Nginx:
-   ```bash
+   
+
+```bash
    sudo systemctl enable nginx
    sudo systemctl start nginx
    ```
@@ -283,8 +327,11 @@
 ## Security Configuration
 
 ### 1. SSL/TLS Setup
+
 1. Request certificate:
-   ```bash
+   
+
+```bash
    aws acm request-certificate \
      --domain-name your-domain \
      --validation-method DNS \
@@ -294,23 +341,31 @@
 2. Configure Route 53 for validation
 
 ### 2. Security Groups
+
 1. Update EC2 security group:
-   ```bash
+   
+
+```bash
    aws ec2 update-security-group-rule-descriptions-ingress \
      --group-id sg-xxxxxxxx \
      --ip-permissions '[{"IpProtocol": "tcp", "FromPort": 80, "ToPort": 80, "IpRanges": [{"CidrIp": "0.0.0.0/0", "Description": "Allow HTTP"}]}]'
    ```
 
 ### 3. IAM Roles
+
 1. Create EC2 role:
-   ```bash
+   
+
+```bash
    aws iam create-role \
      --role-name KappyEC2Role \
      --assume-role-policy-document file://ec2-trust-policy.json
    ```
 
 2. Attach policies:
-   ```bash
+   
+
+```bash
    aws iam attach-role-policy \
      --role-name KappyEC2Role \
      --policy-arn arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
@@ -319,15 +374,20 @@
 ## Monitoring Setup
 
 ### 1. CloudWatch
+
 1. Create dashboard:
-   ```bash
+   
+
+```bash
    aws cloudwatch create-dashboard \
      --dashboard-name KappyDashboard \
      --dashboard-body file://dashboard.json
    ```
 
 2. Configure alarms:
-   ```bash
+   
+
+```bash
    aws cloudwatch put-metric-alarm \
      --alarm-name CPUUtilization \
      --alarm-description "CPU utilization exceeds 80%" \
@@ -341,13 +401,18 @@
    ```
 
 ### 2. Logging
+
 1. Configure CloudWatch agent:
-   ```bash
+   
+
+```bash
    sudo yum install -y amazon-cloudwatch-agent
    ```
 
 2. Configure log collection:
-   ```json
+   
+
+```json
    {
        "logs": {
            "logs_collected": {
@@ -368,6 +433,7 @@
 ## Maintenance Procedures
 
 ### 1. Backup Procedures
+
 1. Database backups:
    - Automated daily snapshots (RDS)
    - Manual snapshots before major changes
@@ -377,8 +443,11 @@
    - Regular JSON data backups
 
 ### 2. Update Procedures
+
 1. Application updates:
-   ```bash
+   
+
+```bash
    cd ~/kappy
    git pull
    npm install
@@ -387,12 +456,15 @@
    ```
 
 2. System updates:
-   ```bash
+   
+
+```bash
    sudo yum update -y
    sudo systemctl restart nginx
    ```
 
 ### 3. Monitoring Checks
+
 1. Daily checks:
    - CloudWatch metrics
    - Error logs
@@ -406,6 +478,7 @@
    - Cost analysis
 
 ### 4. Scaling Procedures
+
 1. Vertical scaling:
    - Modify EC2 instance type
    - Modify RDS instance class

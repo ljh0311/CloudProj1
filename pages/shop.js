@@ -33,12 +33,14 @@ const ProductCard = ({ product }) => {
     const { addToCart } = useCart();
 
     const getSizeAvailabilityColor = (stock) => {
+        if (!stock && stock !== 0) return "gray";
         if (stock > 10) return "green";
         if (stock > 0) return "yellow";
         return "red";
     };
 
     const getSizeAvailabilityText = (stock) => {
+        if (!stock && stock !== 0) return "Not available";
         if (stock === 0) return "Out of stock";
         if (stock <= 5) return `Only ${stock} left!`;
         return `${stock} available`;
@@ -46,6 +48,16 @@ const ProductCard = ({ product }) => {
 
     const handleAddToCart = (e, size) => {
         e.stopPropagation();
+        if (!product[`size_${size.toLowerCase()}_stock`]) {
+            toast({
+                title: "Size not available",
+                description: `${product.name} is not available in size ${size}`,
+                status: "error",
+                duration: 2000,
+                isClosable: true,
+            });
+            return;
+        }
         addToCart(product, size);
         toast({
             title: "Added to cart",
@@ -102,16 +114,16 @@ const ProductCard = ({ product }) => {
                     </Text>
                     <HStack spacing={2}>
                         {[
-                            { label: 'S', stock: product.size_s_stock || 0 },
-                            { label: 'M', stock: product.size_m_stock || 0 },
-                            { label: 'L', stock: product.size_l_stock || 0 }
+                            { label: 'S', stock: product.size_s_stock },
+                            { label: 'M', stock: product.size_m_stock },
+                            { label: 'L', stock: product.size_l_stock }
                         ].map(({ label, stock }) => (
                             <Button
                                 key={label}
                                 size="sm"
                                 variant="outline"
                                 colorScheme={getSizeAvailabilityColor(stock)}
-                                isDisabled={stock === 0}
+                                isDisabled={!stock || stock === 0}
                                 onClick={(e) => handleAddToCart(e, label)}
                                 _hover={{
                                     transform: 'translateY(-2px)',

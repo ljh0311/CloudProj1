@@ -60,7 +60,25 @@ export default function ProductDetail({ product }) {
         );
     }
 
+    const getSizeAvailabilityColor = (stock) => {
+        if (!stock && stock !== 0) return "gray";
+        if (stock > 10) return "green";
+        if (stock > 0) return "yellow";
+        return "red";
+    };
+
     const handleAddToCart = () => {
+        const stockForSize = product[`size_${selectedSize.toLowerCase()}_stock`];
+        if (!stockForSize) {
+            toast({
+                title: "Size not available",
+                description: `${product.name} is not available in size ${selectedSize}`,
+                status: "error",
+                duration: 3000,
+                isClosable: true,
+            });
+            return;
+        }
         addToCart(product, selectedSize);
         toast({
             title: "Added to Cart",
@@ -69,12 +87,6 @@ export default function ProductDetail({ product }) {
             duration: 3000,
             isClosable: true,
         });
-    };
-
-    const getSizeAvailabilityColor = (stock) => {
-        if (stock > 10) return "green";
-        if (stock > 0) return "yellow";
-        return "red";
     };
 
     return (
@@ -148,19 +160,19 @@ export default function ProductDetail({ product }) {
                                                 <Stat>
                                                     <StatLabel color="white">Small</StatLabel>
                                                     <StatNumber color={`${getSizeAvailabilityColor(product.size_s_stock)}.400`}>
-                                                        {product.size_s_stock} left
+                                                        {product.size_s_stock ? `${product.size_s_stock} left` : 'Not available'}
                                                     </StatNumber>
                                                 </Stat>
                                                 <Stat>
                                                     <StatLabel color="white">Medium</StatLabel>
                                                     <StatNumber color={`${getSizeAvailabilityColor(product.size_m_stock)}.400`}>
-                                                        {product.size_m_stock} left
+                                                        {product.size_m_stock ? `${product.size_m_stock} left` : 'Not available'}
                                                     </StatNumber>
                                                 </Stat>
                                                 <Stat>
                                                     <StatLabel color="white">Large</StatLabel>
                                                     <StatNumber color={`${getSizeAvailabilityColor(product.size_l_stock)}.400`}>
-                                                        {product.size_l_stock} left
+                                                        {product.size_l_stock ? `${product.size_l_stock} left` : 'Not available'}
                                                     </StatNumber>
                                                 </Stat>
                                             </StatGroup>
@@ -178,13 +190,13 @@ export default function ProductDetail({ product }) {
                                                     ].map(({ label, stock }) => (
                                                         <Tooltip
                                                             key={label}
-                                                            label={stock > 0 ? `${stock} available` : 'Out of stock'}
+                                                            label={stock ? `${stock} available` : 'Not available'}
                                                             hasArrow
                                                         >
                                                             <Box>
                                                                 <Radio
                                                                     value={label}
-                                                                    isDisabled={stock === 0}
+                                                                    isDisabled={!stock || stock === 0}
                                                                     colorScheme="white"
                                                                     borderColor="whiteAlpha.400"
                                                                     _checked={{

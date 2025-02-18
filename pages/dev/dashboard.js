@@ -46,6 +46,13 @@ const ScriptRunner = () => {
 
     const scripts = [
         {
+            name: 'Update IP Configuration',
+            id: 'update-ip',
+            description: 'Update IP configurations for EC2 deployment',
+            script: 'update-ip.js',
+            color: 'cyan'
+        },
+        {
             name: 'Migrate Database',
             id: 'migrate-db',
             description: 'Initialize or update database schema',

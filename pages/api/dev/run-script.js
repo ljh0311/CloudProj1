@@ -17,6 +17,7 @@ export default async function handler(req, res) {
 
     // Validate script name
     const allowedScripts = [
+        'update-ip.js',
         'migrate-db.js',
         'migrate-orders.js',
         'sync-data.js',

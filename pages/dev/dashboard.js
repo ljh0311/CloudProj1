@@ -53,6 +53,13 @@ const ScriptRunner = () => {
             color: 'cyan'
         },
         {
+            name: 'Check Deployment',
+            id: 'check-deployment',
+            description: 'Run diagnostics on AWS deployment configuration',
+            script: 'check-deployment.js',
+            color: 'yellow'
+        },
+        {
             name: 'Migrate Database',
             id: 'migrate-db',
             description: 'Initialize or update database schema',

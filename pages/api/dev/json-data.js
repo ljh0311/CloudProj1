@@ -1,4 +1,4 @@
-import { readJsonFile } from '../../../lib/db';
+import db, { readJsonFile } from '../../../lib/db';
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') {

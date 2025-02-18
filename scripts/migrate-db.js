@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ path: '.env.production' });
 const mysql = require('mysql2/promise');
 const fs = require('fs').promises;
 const path = require('path');
@@ -30,6 +30,7 @@ const dbConfig = {
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
+  multipleStatements: true // Enable multiple statements
 };
 
 /**
@@ -39,55 +40,123 @@ const dbConfig = {
 async function createTables(connection) {
   console.log('Creating/verifying database tables...');
 
-  // Create users table with updated role enum and additional fields
+  // Create users table
+  console.log('📊 Creating users table...');
   await connection.execute(`
     CREATE TABLE IF NOT EXISTS users (
-      id VARCHAR(36) PRIMARY KEY,
+      id INT PRIMARY KEY AUTO_INCREMENT,
+      name VARCHAR(255) NOT NULL,
       email VARCHAR(255) UNIQUE NOT NULL,
-      name VARCHAR(255),
-      password VARCHAR(255),
+      password VARCHAR(255) NOT NULL,
       role ENUM('customer', 'admin') DEFAULT 'customer',
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      cart JSON DEFAULT (JSON_ARRAY()),
-      orders JSON DEFAULT (JSON_ARRAY())
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )
   `);
-  console.log('✓ Users table ready');
 
-  // Create products table with updated fields
+  // Create products table
+  console.log('📊 Creating products table...');
   await connection.execute(`
     CREATE TABLE IF NOT EXISTS products (
-      id VARCHAR(36) PRIMARY KEY,
+      id INT PRIMARY KEY AUTO_INCREMENT,
       name VARCHAR(255) NOT NULL,
-      description TEXT,
       price DECIMAL(10, 2) NOT NULL,
-      category VARCHAR(100),
+      category VARCHAR(100) NOT NULL,
       image VARCHAR(255),
-      size_s_stock INT DEFAULT 20,
-      size_m_stock INT DEFAULT 20,
-      size_l_stock INT DEFAULT 20,
       material VARCHAR(100),
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      description TEXT,
+      size_s_stock INT DEFAULT 0,
+      size_m_stock INT DEFAULT 0,
+      size_l_stock INT DEFAULT 0,
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )
   `);
-  console.log('✓ Products table ready');
 
-  // Create orders table with updated structure
+  // Create orders table
+  console.log('📊 Creating orders table...');
   await connection.execute(`
     CREATE TABLE IF NOT EXISTS orders (
-      id VARCHAR(36) PRIMARY KEY,
-      user_id VARCHAR(36),
-      status VARCHAR(50) DEFAULT 'pending',
-      total_amount DECIMAL(10, 2) NOT NULL,
+      id INT PRIMARY KEY AUTO_INCREMENT,
+      userId INT NOT NULL,
+      orderNumber VARCHAR(50) UNIQUE NOT NULL,
       items JSON NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users(id)
+      subtotal DECIMAL(10, 2) NOT NULL,
+      tax DECIMAL(10, 2) NOT NULL,
+      shipping DECIMAL(10, 2) NOT NULL,
+      total DECIMAL(10, 2) NOT NULL,
+      status ENUM('pending', 'processing', 'shipped', 'delivered', 'cancelled') NOT NULL DEFAULT 'pending',
+      shippingAddress JSON NOT NULL,
+      billingAddress JSON NOT NULL,
+      paymentMethod JSON NOT NULL,
+      notes TEXT,
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
     )
   `);
-  console.log('✓ Orders table ready');
+
+  // Create sessions table for NextAuth
+  console.log('📊 Creating sessions table...');
+  await connection.execute(`
+    CREATE TABLE IF NOT EXISTS sessions (
+      id INT PRIMARY KEY AUTO_INCREMENT,
+      userId INT NOT NULL,
+      expires TIMESTAMP NOT NULL,
+      sessionToken VARCHAR(255) UNIQUE NOT NULL,
+      accessToken VARCHAR(255) UNIQUE NOT NULL,
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
+  // Create verification requests table for NextAuth
+  console.log('📊 Creating verification requests table...');
+  await connection.execute(`
+    CREATE TABLE IF NOT EXISTS verification_requests (
+      id INT PRIMARY KEY AUTO_INCREMENT,
+      identifier VARCHAR(255) NOT NULL,
+      token VARCHAR(255) NOT NULL,
+      expires TIMESTAMP NOT NULL,
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Import initial data if tables are empty
+  console.log('📥 Checking for initial data...');
+  
+  // Check if users table is empty
+  const [userCount] = await connection.execute('SELECT COUNT(*) as count FROM users');
+  if (userCount[0].count === 0) {
+    console.log('➕ Adding default admin user...');
+    await connection.execute(`
+      INSERT INTO users (name, email, password, role) VALUES 
+      ('Admin', 'admin@kappy.com', '$2b$10$K7L6gRuGiL6RzLGIGQ8xdOqD8Ql7SkUQEX1yZkJHYPqm6wQVBFjqO', 'admin')
+    `);
+  }
+
+  // Check if products table is empty
+  const [productCount] = await connection.execute('SELECT COUNT(*) as count FROM products');
+  if (productCount[0].count === 0) {
+    console.log('➕ Adding sample products...');
+    await connection.execute(`
+      INSERT INTO products (name, price, category, material, description, size_s_stock, size_m_stock, size_l_stock) VALUES 
+      ('Classic Black Tee', 29.99, 'Basic Tees', '100% Cotton', 'Classic black t-shirt', 50, 50, 50),
+      ('Vintage Rock Band Tee', 39.99, 'Band Tees', '100% Cotton', 'Vintage style rock band t-shirt', 30, 30, 30)
+    `);
+  }
+
+  console.log('✅ Database migration completed successfully!');
+
+  // Display table information
+  const tables = ['users', 'products', 'orders', 'sessions', 'verification_requests'];
+  console.log('\n📊 Table Information:');
+  for (const table of tables) {
+    const [rows] = await connection.execute(`SELECT COUNT(*) as count FROM ${table}`);
+    console.log(`${table}: ${rows[0].count} rows`);
+  }
 }
 
 /**
@@ -149,15 +218,13 @@ async function migrateData() {
     for (const user of users) {
       try {
         await connection.execute(
-          'INSERT INTO users (id, email, name, password, role, cart, orders, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+          'INSERT INTO users (id, email, name, password, role, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
           [
             user.id,
             user.email,
             user.name,
             user.password,
             user.role,
-            JSON.stringify(user.cart || []),
-            JSON.stringify(user.orders || []),
             user.createdAt || new Date().toISOString(),
             user.updatedAt || new Date().toISOString()
           ]
@@ -178,21 +245,20 @@ async function migrateData() {
       try {
         await connection.execute(
           `INSERT INTO products (
-            id, name, description, price, category, image,
-            size_s_stock, size_m_stock, size_l_stock, material,
-            created_at, updated_at
+            id, name, price, category, image, material, description,
+            size_s_stock, size_m_stock, size_l_stock, createdAt, updatedAt
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             product.id,
             product.name,
-            product.description,
             product.price,
             product.category,
             product.image,
-            product.size_s_stock || 20,
-            product.size_m_stock || 20,
-            product.size_l_stock || 20,
             product.material,
+            product.description,
+            product.size_s_stock || 0,
+            product.size_m_stock || 0,
+            product.size_l_stock || 0,
             product.createdAt || new Date().toISOString(),
             product.updatedAt || new Date().toISOString()
           ]
@@ -213,15 +279,23 @@ async function migrateData() {
       for (const order of orders) {
         try {
           await connection.execute(
-            'INSERT INTO orders (id, user_id, status, total_amount, items, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO orders (id, userId, orderNumber, items, subtotal, tax, shipping, total, status, shippingAddress, billingAddress, paymentMethod, notes, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
               order.id,
-              order.user_id,
-              order.status || 'pending',
-              order.total_amount,
+              order.userId,
+              order.orderNumber,
               JSON.stringify(order.items || []),
-              order.created_at || new Date().toISOString(),
-              order.updated_at || new Date().toISOString()
+              order.subtotal,
+              order.tax,
+              order.shipping,
+              order.total,
+              order.status || 'pending',
+              JSON.stringify(order.shippingAddress || {}),
+              JSON.stringify(order.billingAddress || {}),
+              JSON.stringify(order.paymentMethod || {}),
+              order.notes,
+              order.createdAt || new Date().toISOString(),
+              order.updatedAt || new Date().toISOString()
             ]
           );
         } catch (error) {

@@ -7,7 +7,7 @@
 
 set -e # Exit on error
 
-echo "Starting setup at $(date)" > /var/log/kappy-setup.log
+echo "Starting setup at $(date)" >/var/log/kappy-setup.log
 
 #---------------------------------------------------------
 # System Configuration
@@ -15,11 +15,11 @@ echo "Starting setup at $(date)" > /var/log/kappy-setup.log
 # Configure swap space for t2.micro
 echo "Configuring swap space..."
 if [ ! -f /swapfile ]; then
-    dd if=/dev/zero of=/swapfile bs=128M count=16   # 2GB swap file
+    dd if=/dev/zero of=/swapfile bs=128M count=16 # 2GB swap file
     chmod 600 /swapfile
     mkswap /swapfile
     swapon /swapfile
-    echo '/swapfile none swap sw 0 0' >> /etc/fstab
+    echo '/swapfile none swap sw 0 0' >>/etc/fstab
 fi
 
 # Update system and install dependencies
@@ -37,13 +37,23 @@ cd /home/ec2-user
 # Get instance IP
 EC2_PUBLIC_IP=$(curl -s http://169.254.169.254/latest/meta-data/public-ipv4)
 echo "Retrieved EC2 Public IP: ${EC2_PUBLIC_IP}"
-echo "${EC2_PUBLIC_IP}" > /home/ec2-user/app/config/instance-ip
+echo "${EC2_PUBLIC_IP}" >/home/ec2-user/app/config/instance-ip
 
 # Generate and store NEXTAUTH_SECRET
 if [ ! -f /home/ec2-user/app/config/nextauth-secret ]; then
     NEXTAUTH_SECRET=$(openssl rand -base64 32)
-    echo "${NEXTAUTH_SECRET}" > /home/ec2-user/app/config/nextauth-secret
+    echo "${NEXTAUTH_SECRET}" >/home/ec2-user/app/config/nextauth-secret
 fi
+
+#---------------------------------------------------------
+# Environment Variables Setup
+#---------------------------------------------------------
+# Replace these values with your actual configuration
+DB_HOST="your-rds-endpoint.region.rds.amazonaws.com"
+DB_PASSWORD="your-secure-password"
+DB_USER="admin"
+DB_NAME="kappy_db"
+DB_PORT="3306"
 
 #---------------------------------------------------------
 # Node.js Setup
@@ -81,37 +91,56 @@ fi
 # Set permissions
 chown -R ec2-user:ec2-user /home/ec2-user/app
 
-# Create .env file
-cat > .env << EOF
+# Create .env file with configuration
+cat >/home/ec2-user/app/CloudProj1/.env <<EOF
+#----------------------------------------------------------
 # Database Configuration
-DB_HOST=database1.czsa24cac7y5.us-east-1.rds.amazonaws.com
-DB_USER=admin
-DB_PASSWORD=KappyAdmin
-DB_NAME=kappy_db
+#----------------------------------------------------------
+DB_HOST=${DB_HOST}
+DB_USER=${DB_USER}
+DB_PASSWORD=${DB_PASSWORD}
+DB_NAME=${DB_NAME}
+DB_PORT=${DB_PORT}
 
+#----------------------------------------------------------
 # Application Configuration
+#----------------------------------------------------------
 NODE_ENV=production
 PORT=3000
 
+#----------------------------------------------------------
 # Authentication Configuration
+#----------------------------------------------------------
 NEXTAUTH_URL=http://${EC2_PUBLIC_IP}:3000
 NEXTAUTH_SECRET=$(cat /home/ec2-user/app/config/nextauth-secret)
 
+#----------------------------------------------------------
 # API Configuration
+#----------------------------------------------------------
 NEXT_PUBLIC_API_URL=http://${EC2_PUBLIC_IP}:3000/api
 
+#----------------------------------------------------------
 # Security Configuration
+#----------------------------------------------------------
 SECURE_COOKIES=true
 SESSION_SECRET=$(cat /home/ec2-user/app/config/nextauth-secret)
+
+#----------------------------------------------------------
+# Performance Configuration
+#----------------------------------------------------------
+NODE_OPTIONS=--max-old-space-size=512
+NEXT_TELEMETRY_DISABLED=1
 EOF
 
-chmod 600 .env
+# Secure the .env file
+chmod 600 /home/ec2-user/app/CloudProj1/.env
+chown ec2-user:ec2-user /home/ec2-user/app/CloudProj1/.env
 
 #---------------------------------------------------------
 # Application Installation and Build
 #---------------------------------------------------------
 echo "Installing dependencies and building..."
-sudo -u ec2-user bash << EOF
+sudo -u ec2-user bash <<EOF
 export NVM_DIR="/home/ec2-user/.nvm"
 [ -s "\$NVM_DIR/nvm.sh" ] && \. "\$NVM_DIR/nvm.sh"
 cd /home/ec2-user/app/CloudProj1
@@ -139,7 +168,7 @@ EOF
 # Monitoring Setup
 #---------------------------------------------------------
 # Create status check script
-cat > /home/ec2-user/check-status.sh << 'EOF'
+cat >/home/ec2-user/check-status.sh <<'EOF'
 #!/bin/bash
 echo "=== System Status ==="
 free -h
@@ -158,7 +187,7 @@ EOF
 chmod +x /home/ec2-user/check-status.sh
 chown ec2-user:ec2-user /home/ec2-user/check-status.sh
 
-echo "Setup completed at $(date)" >> /var/log/kappy-setup.log
+echo "Setup completed at $(date)" >>/var/log/kappy-setup.log
 
 #---------------------------------------------------------
 # Final Instructions
@@ -181,4 +210,4 @@ SETUP COMPLETE! NEXT STEPS:
    - View logs: pm2 logs kappy
    - Check memory: free -h
 ==============================================
-""" 
+"""

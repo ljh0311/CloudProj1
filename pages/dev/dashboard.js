@@ -33,6 +33,7 @@ import {
 import { useState, useEffect } from 'react';
 import { getSession, signIn } from 'next-auth/react';
 import Head from 'next/head';
+import Navbar from '../../components/Navbar';
 
 export default function DevDashboard() {
     const [jsonData, setJsonData] = useState({
@@ -324,107 +325,112 @@ export default function DevDashboard() {
                 <meta name="description" content="Developer dashboard for database inspection" />
             </Head>
 
-            <Container maxW="container.xl" py={8}>
-                <Flex align="center" mb={8}>
-                    <Heading>Developer Dashboard</Heading>
-                    <Spacer />
-                    <Button
-                        colorScheme="blue"
-                        onClick={fetchData}
-                        isLoading={isLoading}
-                    >
-                        Refresh Data
-                    </Button>
-                </Flex>
+            <Box minH="100vh" bg="gray.900">
+                <Navbar />
+                <Container maxW="container.xl" py={8}>
+                    <Flex align="center" mb={8}>
+                        <Heading color="white">Developer Dashboard</Heading>
+                        <Spacer />
+                        <Button
+                            colorScheme="blue"
+                            onClick={fetchData}
+                            isLoading={isLoading}
+                        >
+                            Refresh Data
+                        </Button>
+                    </Flex>
 
-                <Tabs>
-                    <TabList>
-                        <Tab>Users</Tab>
-                        <Tab>Products</Tab>
-                        <Tab>Orders</Tab>
-                        <Tab>Differences</Tab>
-                        <Tab>Auth Testing</Tab>
-                    </TabList>
+                    <Box bg="gray.800" p={6} borderRadius="lg" boxShadow="xl">
+                        <Tabs variant="enclosed" colorScheme="blue">
+                            <TabList>
+                                <Tab color="white" _selected={{ color: "blue.500", bg: "white" }}>Users</Tab>
+                                <Tab color="white" _selected={{ color: "blue.500", bg: "white" }}>Products</Tab>
+                                <Tab color="white" _selected={{ color: "blue.500", bg: "white" }}>Orders</Tab>
+                                <Tab color="white" _selected={{ color: "blue.500", bg: "white" }}>Differences</Tab>
+                                <Tab color="white" _selected={{ color: "blue.500", bg: "white" }}>Auth Testing</Tab>
+                            </TabList>
 
-                    <TabPanels>
-                        <TabPanel>
-                            <Tabs>
-                                <TabList>
-                                    <Tab>JSON Data</Tab>
-                                    <Tab>MySQL Data</Tab>
-                                </TabList>
-                                <TabPanels>
-                                    <TabPanel>
-                                        {renderDataTable(jsonData.users, 'users')}
-                                    </TabPanel>
-                                    <TabPanel>
-                                        {renderDataTable(mysqlData.users, 'users')}
-                                    </TabPanel>
-                                </TabPanels>
-                            </Tabs>
-                        </TabPanel>
+                            <TabPanels bg="white" borderRadius="lg" mt={4}>
+                                <TabPanel>
+                                    <Tabs>
+                                        <TabList>
+                                            <Tab>JSON Data</Tab>
+                                            <Tab>MySQL Data</Tab>
+                                        </TabList>
+                                        <TabPanels>
+                                            <TabPanel>
+                                                {renderDataTable(jsonData.users, 'users')}
+                                            </TabPanel>
+                                            <TabPanel>
+                                                {renderDataTable(mysqlData.users, 'users')}
+                                            </TabPanel>
+                                        </TabPanels>
+                                    </Tabs>
+                                </TabPanel>
 
-                        <TabPanel>
-                            <Tabs>
-                                <TabList>
-                                    <Tab>JSON Data</Tab>
-                                    <Tab>MySQL Data</Tab>
-                                </TabList>
-                                <TabPanels>
-                                    <TabPanel>
-                                        {renderDataTable(jsonData.products, 'products')}
-                                    </TabPanel>
-                                    <TabPanel>
-                                        {renderDataTable(mysqlData.products, 'products')}
-                                    </TabPanel>
-                                </TabPanels>
-                            </Tabs>
-                        </TabPanel>
+                                <TabPanel>
+                                    <Tabs>
+                                        <TabList>
+                                            <Tab>JSON Data</Tab>
+                                            <Tab>MySQL Data</Tab>
+                                        </TabList>
+                                        <TabPanels>
+                                            <TabPanel>
+                                                {renderDataTable(jsonData.products, 'products')}
+                                            </TabPanel>
+                                            <TabPanel>
+                                                {renderDataTable(mysqlData.products, 'products')}
+                                            </TabPanel>
+                                        </TabPanels>
+                                    </Tabs>
+                                </TabPanel>
 
-                        <TabPanel>
-                            <Tabs>
-                                <TabList>
-                                    <Tab>JSON Data</Tab>
-                                    <Tab>MySQL Data</Tab>
-                                </TabList>
-                                <TabPanels>
-                                    <TabPanel>
-                                        {renderDataTable(jsonData.orders, 'orders')}
-                                    </TabPanel>
-                                    <TabPanel>
-                                        {renderDataTable(mysqlData.orders, 'orders')}
-                                    </TabPanel>
-                                </TabPanels>
-                            </Tabs>
-                        </TabPanel>
+                                <TabPanel>
+                                    <Tabs>
+                                        <TabList>
+                                            <Tab>JSON Data</Tab>
+                                            <Tab>MySQL Data</Tab>
+                                        </TabList>
+                                        <TabPanels>
+                                            <TabPanel>
+                                                {renderDataTable(jsonData.orders, 'orders')}
+                                            </TabPanel>
+                                            <TabPanel>
+                                                {renderDataTable(mysqlData.orders, 'orders')}
+                                            </TabPanel>
+                                        </TabPanels>
+                                    </Tabs>
+                                </TabPanel>
 
-                        <TabPanel>
-                            <Tabs>
-                                <TabList>
-                                    <Tab>Users</Tab>
-                                    <Tab>Products</Tab>
-                                    <Tab>Orders</Tab>
-                                </TabList>
-                                <TabPanels>
-                                    <TabPanel>
-                                        {renderDifferences(differences.users, 'users')}
-                                    </TabPanel>
-                                    <TabPanel>
-                                        {renderDifferences(differences.products, 'products')}
-                                    </TabPanel>
-                                    <TabPanel>
-                                        {renderDifferences(differences.orders, 'orders')}
-                                    </TabPanel>
-                                </TabPanels>
-                            </Tabs>
-                        </TabPanel>
+                                <TabPanel>
+                                    <Tabs>
+                                        <TabList>
+                                            <Tab>Users</Tab>
+                                            <Tab>Products</Tab>
+                                            <Tab>Orders</Tab>
+                                        </TabList>
+                                        <TabPanels>
+                                            <TabPanel>
+                                                {renderDifferences(differences.users, 'users')}
+                                            </TabPanel>
+                                            <TabPanel>
+                                                {renderDifferences(differences.products, 'products')}
+                                            </TabPanel>
+                                            <TabPanel>
+                                                {renderDifferences(differences.orders, 'orders')}
+                                            </TabPanel>
+                                        </TabPanels>
+                                    </Tabs>
+                                </TabPanel>
 
-                        <TabPanel>
-                            {renderAuthTestSection()}
-                        </TabPanel>
-                    </TabPanels>
-                </Tabs>
-            </Container>
+                                <TabPanel>
+                                    {renderAuthTestSection()}
+                                </TabPanel>
+                            </TabPanels>
+                        </Tabs>
+                    </Box>
+                </Container>
+            </Box>
         </>
     );
 }

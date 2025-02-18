@@ -1,5 +1,5 @@
 const mysql = require('mysql2/promise');
-require('dotenv').config();
+require('dotenv').config({ path: '.env.production' });
 
 async function migrateOrders() {
     const connection = await mysql.createConnection({
@@ -16,8 +16,8 @@ async function migrateOrders() {
         // Create new orders table with improved structure
         await connection.execute(`
             CREATE TABLE orders (
-                id INT PRIMARY KEY AUTO_INCREMENT,
-                userId INT NOT NULL,
+                id VARCHAR(36) PRIMARY KEY,
+                userId VARCHAR(36) NOT NULL,
                 orderNumber VARCHAR(50) UNIQUE NOT NULL,
                 items JSON NOT NULL,
                 subtotal DECIMAL(10, 2) NOT NULL,

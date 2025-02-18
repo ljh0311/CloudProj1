@@ -35,6 +35,117 @@ import { getSession, signIn } from 'next-auth/react';
 import Head from 'next/head';
 import Navbar from '../../components/Navbar';
 
+// Add new component for script execution
+const ScriptRunner = () => {
+    const [scriptStatus, setScriptStatus] = useState({});
+    const [isRunning, setIsRunning] = useState(false);
+
+    const scripts = [
+        {
+            name: 'Migrate Database',
+            id: 'migrate-db',
+            description: 'Initialize or update database schema',
+            script: 'migrate-db.js'
+        },
+        {
+            name: 'Migrate Orders',
+            id: 'migrate-orders',
+            description: 'Update orders table structure',
+            script: 'migrate-orders.js'
+        },
+        {
+            name: 'Sync Data',
+            id: 'sync-data',
+            description: 'Synchronize data between JSON and MySQL',
+            script: 'sync-data.js'
+        },
+        {
+            name: 'Hash Passwords',
+            id: 'hash-passwords',
+            description: 'Update password hashes in the database',
+            script: 'hash-passwords.js'
+        }
+    ];
+
+    const runScript = async (scriptName) => {
+        setIsRunning(true);
+        setScriptStatus(prev => ({ ...prev, [scriptName]: 'running' }));
+        
+        try {
+            const response = await fetch('/api/dev/run-script', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ script: scriptName }),
+            });
+
+            const data = await response.json();
+            
+            if (response.ok) {
+                setScriptStatus(prev => ({ ...prev, [scriptName]: 'success' }));
+            } else {
+                setScriptStatus(prev => ({ ...prev, [scriptName]: 'error' }));
+                console.error('Script error:', data.error);
+            }
+        } catch (error) {
+            console.error('Error running script:', error);
+            setScriptStatus(prev => ({ ...prev, [scriptName]: 'error' }));
+        } finally {
+            setIsRunning(false);
+        }
+    };
+
+    return (
+        <VStack spacing={4} align="stretch">
+            <Text fontSize="lg" fontWeight="bold" mb={4}>
+                Database Management Scripts
+            </Text>
+            {scripts.map((script) => (
+                <Box
+                    key={script.id}
+                    p={4}
+                    borderWidth="1px"
+                    borderRadius="lg"
+                    bg="gray.700"
+                >
+                    <HStack justify="space-between">
+                        <VStack align="start" spacing={1}>
+                            <Text fontWeight="bold">{script.name}</Text>
+                            <Text fontSize="sm" color="gray.400">
+                                {script.description}
+                            </Text>
+                        </VStack>
+                        <HStack>
+                            {scriptStatus[script.script] && (
+                                <Badge
+                                    colorScheme={
+                                        scriptStatus[script.script] === 'success'
+                                            ? 'green'
+                                            : scriptStatus[script.script] === 'error'
+                                            ? 'red'
+                                            : 'yellow'
+                                    }
+                                >
+                                    {scriptStatus[script.script]}
+                                </Badge>
+                            )}
+                            <Button
+                                colorScheme="blue"
+                                size="sm"
+                                isLoading={isRunning && scriptStatus[script.script] === 'running'}
+                                onClick={() => runScript(script.script)}
+                            >
+                                Run Script
+                            </Button>
+                        </HStack>
+                    </HStack>
+                </Box>
+            ))}
+        </VStack>
+    );
+};
+
 export default function DevDashboard() {
     const [jsonData, setJsonData] = useState({
         users: null,
@@ -348,6 +459,7 @@ export default function DevDashboard() {
                                 <Tab color="white" _selected={{ color: "blue.500", bg: "white" }}>Orders</Tab>
                                 <Tab color="white" _selected={{ color: "blue.500", bg: "white" }}>Differences</Tab>
                                 <Tab color="white" _selected={{ color: "blue.500", bg: "white" }}>Auth Testing</Tab>
+                                <Tab color="white" _selected={{ color: "blue.500", bg: "white" }}>Scripts</Tab>
                             </TabList>
 
                             <TabPanels bg="white" borderRadius="lg" mt={4}>
@@ -425,6 +537,10 @@ export default function DevDashboard() {
 
                                 <TabPanel>
                                     {renderAuthTestSection()}
+                                </TabPanel>
+
+                                <TabPanel>
+                                    <ScriptRunner />
                                 </TabPanel>
                             </TabPanels>
                         </Tabs>

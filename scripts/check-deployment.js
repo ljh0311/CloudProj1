@@ -3,6 +3,7 @@ const path = require('path');
 const https = require('https');
 const http = require('http');
 const { execSync } = require('child_process');
+const mysql = require('mysql2/promise');
 
 async function checkDeployment() {
     console.log('🔍 Starting deployment diagnostics...\n');
@@ -124,14 +125,51 @@ async function checkDeployment() {
         }
 
         // Check MySQL connection
-        console.log('\n🗄️ Checking MySQL connection...');
+        console.log('\n🗄️ Checking RDS connection...');
         try {
-            const mysqlStatus = execSync('systemctl is-active mysql').toString().trim();
-            results.database.mysql = mysqlStatus === 'active' ? 'Running' : 'Not running';
-            console.log(`✅ MySQL service: ${results.database.mysql}`);
+            const mysqlStatus = await new Promise((resolve, reject) => {
+                mysql.createConnection({
+                    host: process.env.DB_HOST,
+                    user: process.env.DB_USER,
+                    password: process.env.DB_PASSWORD,
+                    database: process.env.DB_NAME
+                }).then(connection => {
+                    connection.query('SELECT 1')
+                        .then(() => {
+                            connection.end();
+                            resolve('connected');
+                        })
+                        .catch(err => {
+                            connection.end();
+                            reject(err);
+                        });
+                }).catch(reject);
+            });
+            
+            results.database.rds = 'Connected';
+            console.log('✅ RDS connection successful');
+            
+            // Test database operations
+            const connection = await mysql.createConnection({
+                host: process.env.DB_HOST,
+                user: process.env.DB_USER,
+                password: process.env.DB_PASSWORD,
+                database: process.env.DB_NAME
+            });
+            
+            // Check tables
+            const [tables] = await connection.query('SHOW TABLES');
+            console.log('📋 Available tables:', tables.map(t => Object.values(t)[0]).join(', '));
+            
+            await connection.end();
         } catch (err) {
-            results.database.mysql = 'Not running';
-            console.log('❌ MySQL service is not running');
+            results.database.rds = 'Not connected';
+            console.log('❌ RDS connection failed:', err.message);
+            console.log('\n⚠️ Please check:');
+            console.log('1. RDS instance is running');
+            console.log('2. Security group allows inbound traffic from EC2 (port 3306)');
+            console.log('3. Database credentials are correct');
+            console.log('4. Network ACLs allow the connection');
         }
 
         // Check file permissions
@@ -174,8 +212,8 @@ async function checkDeployment() {
         if (results.environment.pm2 !== 'Running') {
             console.log('- Start the application using PM2: pm2 start npm --name "kappy" -- start');
         }
-        if (results.database.mysql !== 'Running') {
-            console.log('- Start MySQL service: sudo systemctl start mysql');
+        if (results.database.rds !== 'Connected') {
+            console.log('- Check RDS connection and troubleshoot');
         }
 
         // Check environment variables

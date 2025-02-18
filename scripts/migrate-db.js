@@ -44,7 +44,7 @@ async function createTables(connection) {
   console.log('📊 Creating users table...');
   await connection.execute(`
     CREATE TABLE IF NOT EXISTS users (
-      id INT PRIMARY KEY AUTO_INCREMENT,
+      id VARCHAR(36) PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
       email VARCHAR(255) UNIQUE NOT NULL,
       password VARCHAR(255) NOT NULL,
@@ -58,7 +58,7 @@ async function createTables(connection) {
   console.log('📊 Creating products table...');
   await connection.execute(`
     CREATE TABLE IF NOT EXISTS products (
-      id INT PRIMARY KEY AUTO_INCREMENT,
+      id VARCHAR(36) PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
       price DECIMAL(10, 2) NOT NULL,
       category VARCHAR(100) NOT NULL,
@@ -77,8 +77,8 @@ async function createTables(connection) {
   console.log('📊 Creating orders table...');
   await connection.execute(`
     CREATE TABLE IF NOT EXISTS orders (
-      id INT PRIMARY KEY AUTO_INCREMENT,
-      userId INT NOT NULL,
+      id VARCHAR(36) PRIMARY KEY,
+      userId VARCHAR(36) NOT NULL,
       orderNumber VARCHAR(50) UNIQUE NOT NULL,
       items JSON NOT NULL,
       subtotal DECIMAL(10, 2) NOT NULL,
@@ -100,8 +100,8 @@ async function createTables(connection) {
   console.log('📊 Creating sessions table...');
   await connection.execute(`
     CREATE TABLE IF NOT EXISTS sessions (
-      id INT PRIMARY KEY AUTO_INCREMENT,
-      userId INT NOT NULL,
+      id VARCHAR(36) PRIMARY KEY,
+      userId VARCHAR(36) NOT NULL,
       expires TIMESTAMP NOT NULL,
       sessionToken VARCHAR(255) UNIQUE NOT NULL,
       accessToken VARCHAR(255) UNIQUE NOT NULL,
@@ -115,7 +115,7 @@ async function createTables(connection) {
   console.log('📊 Creating verification requests table...');
   await connection.execute(`
     CREATE TABLE IF NOT EXISTS verification_requests (
-      id INT PRIMARY KEY AUTO_INCREMENT,
+      id VARCHAR(36) PRIMARY KEY,
       identifier VARCHAR(255) NOT NULL,
       token VARCHAR(255) NOT NULL,
       expires TIMESTAMP NOT NULL,

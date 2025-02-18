@@ -4,22 +4,38 @@
 # EC2 User Data Script for KAPPY E-commerce Setup
 # 
 # HOW TO USE:
-# 1. Replace the following variables with your values:
-#    - RDS_ENDPOINT
-#    - RDS_PASSWORD
-#    - NEXTAUTH_SECRET
-# 2. Copy this entire script
-# 3. When launching EC2:
+# 1. Before running this script, store your secrets in AWS Systems Manager Parameter Store:
+#    - /kappy/prod/rds/endpoint
+#    - /kappy/prod/rds/password
+#    - /kappy/prod/auth/nextauth_secret
+# 2. Ensure the EC2 instance has an IAM role with permissions to access Parameter Store
+# 3. Copy this entire script
+# 4. When launching EC2:
 #    - Expand "Advanced details"
 #    - Scroll to "User data"
 #    - Paste this script
 #=========================================================
 
 #---------------------------------------------------------
-# Configuration Variables - EDIT THESE VALUES
+# Configuration Variables - Retrieved securely from Parameter Store
 #---------------------------------------------------------
-RDS_ENDPOINT="database1.czsa24cac7y5.us-east-1.rds.amazonaws.com"  # Your RDS endpoint
-RDS_PASSWORD="KappyAdmin"                                          # Your RDS password
+
+# Install AWS CLI if not present
+if ! command -v aws &> /dev/null; then
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    unzip awscliv2.zip
+    sudo ./aws/install
+fi
+
+# Retrieve secrets from Parameter Store
+RDS_ENDPOINT=$(aws ssm get-parameter --name "/kappy/prod/rds/endpoint" --with-decryption --query "Parameter.Value" --output text --region us-east-1)
+RDS_PASSWORD=$(aws ssm get-parameter --name "/kappy/prod/rds/password" --with-decryption --query "Parameter.Value" --output text --region us-east-1)
+
+# Validate retrieved parameters
+if [ -z "$RDS_ENDPOINT" ] || [ -z "$RDS_PASSWORD" ]; then
+    echo "Error: Failed to retrieve required parameters from Parameter Store"
+    exit 1
+fi
 
 # Create a directory for persistent configuration
 mkdir -p /home/ec2-user/app/config
@@ -109,7 +125,7 @@ fi
 #---------------------------------------------------------
 echo "Configuring environment..."
 
-# Create or update .env file with evaluated IP address
+# Create or update .env file with evaluated IP address and secure parameters
 cat > /home/ec2-user/app/CloudProj1/.env << EOF
 # Database Configuration
 DB_HOST=${RDS_ENDPOINT}
@@ -204,12 +220,16 @@ echo "${NEW_IP}" > /home/ec2-user/app/config/instance-ip
 # Get the stored NEXTAUTH_SECRET
 NEXTAUTH_SECRET=$(cat /home/ec2-user/app/config/nextauth-secret)
 
-# Update the .env file with the new IP
+# Retrieve secrets from Parameter Store
+RDS_ENDPOINT=$(aws ssm get-parameter --name "/kappy/prod/rds/endpoint" --with-decryption --query "Parameter.Value" --output text --region us-east-1)
+RDS_PASSWORD=$(aws ssm get-parameter --name "/kappy/prod/rds/password" --with-decryption --query "Parameter.Value" --output text --region us-east-1)
+
+# Update the .env file with the new IP and secure parameters
 cat > /home/ec2-user/app/CloudProj1/.env << EOF
 # Database Configuration
-DB_HOST=database1.czsa24cac7y5.us-east-1.rds.amazonaws.com
+DB_HOST=${RDS_ENDPOINT}
 DB_USER=admin
-DB_PASSWORD=KappyAdmin
+DB_PASSWORD=${RDS_PASSWORD}
 DB_NAME=kappy_db
 
 # Application Configuration

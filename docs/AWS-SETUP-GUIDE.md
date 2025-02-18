@@ -2,6 +2,11 @@
 
 This guide provides step-by-step instructions for setting up AWS services using the web console.
 
+## Prerequisites
+1. AWS Account with appropriate permissions
+2. AWS CLI installed and configured
+3. Access to AWS Systems Manager Parameter Store
+
 ## Quick Setup Steps
 
 1. Set up RDS Database (Database1)
@@ -403,3 +408,33 @@ mysql -h database1.xxxxxxxxxxxx.ap-southeast-2.rds.amazonaws.com -u admin -p
    npm run build
    pm2 restart kappy
    ```
+
+## Security Setup
+
+### 1. Store Sensitive Parameters
+Before deploying, store your sensitive parameters in AWS Systems Manager Parameter Store:
+
+```bash
+# Store RDS endpoint
+aws ssm put-parameter \
+    --name "/kappy/prod/rds/endpoint" \
+    --value "your-rds-endpoint.region.rds.amazonaws.com" \
+    --type "SecureString"
+
+# Store RDS password
+aws ssm put-parameter \
+    --name "/kappy/prod/rds/password" \
+    --value "your-secure-password" \
+    --type "SecureString"
+
+# Store NextAuth secret
+aws ssm put-parameter \
+    --name "/kappy/prod/auth/nextauth_secret" \
+    --value "$(openssl rand -base64 32)" \
+    --type "SecureString"
+```
+
+### 2. Create IAM Role
+Create an IAM role for your EC2 instance with the following permissions:
+- AWSSystemsManagerParameterStoreReadOnly
+- Any other required permissions for your application

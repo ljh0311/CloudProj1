@@ -46,6 +46,7 @@ import { useState, useEffect, useRef } from 'react';
 import Navbar from '../../components/Navbar';
 import AnimatedBackground from '../../components/AnimatedBackground';
 import { formatDate } from '../../utils/dateFormatter';
+import { getSession } from 'next-auth/react';
 
 // Product Form Component
 const ProductForm = ({ initialData, onSubmit, onClose }) => {
@@ -647,4 +648,21 @@ export default function AdminDashboard() {
             </Box>
         </>
     );
+}
+
+export async function getServerSideProps(context) {
+    const session = await getSession(context);
+    
+    if (!session || session.user.role !== 'admin') {
+        return {
+            redirect: {
+                destination: '/',
+                permanent: false,
+            },
+        };
+    }
+
+    return {
+        props: { session }
+    };
 } 

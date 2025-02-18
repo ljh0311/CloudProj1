@@ -208,6 +208,24 @@ const MobileNav = ({ isOpen, links }) => (
   </Collapse>
 );
 
+// Define dev tools button separately
+const DevToolsButton = ({ isAdmin }) => {
+  if (!isAdmin) return null;
+  return (
+    <Button
+      as={NextLink}
+      href="/dev/dashboard"
+      variant="ghost"
+      color="white"
+      leftIcon={<Text fontSize="lg">🛠️</Text>}
+      _hover={{ bg: 'rgba(255, 255, 255, 0.1)' }}
+      size="sm"
+    >
+      Dev Tools
+    </Button>
+  );
+};
+
 /**
  * Main navigation bar component for the application.
  * Provides navigation links, user authentication, and cart functionality.
@@ -227,20 +245,25 @@ export default function Navbar() {
     { href: "/about", label: "About" }
   ];
 
-  // Define dev tools button separately
-  const DevToolsButton = () => (
-    <Button
-      as={NextLink}
-      href="/dev/dashboard"
-      variant="ghost"
-      color="white"
-      leftIcon={<Text fontSize="lg">🛠️</Text>}
-      _hover={{ bg: 'rgba(255, 255, 255, 0.1)' }}
-      size="sm"
-    >
-      Dev Tools
-    </Button>
-  );
+  // Add admin-specific links if user is admin
+  const mobileNavLinks = [
+    ...navLinks,
+    ...(isAdmin ? [
+      { href: "/dev/dashboard", label: "Dev Tools 🛠️" },
+      { href: "/admin/dashboard", label: "Admin Dashboard ⚙️" }
+    ] : []),
+    { href: "/cart", label: `Cart ${cartItemCount > 0 ? `(${cartItemCount})` : ''}` },
+    ...(session
+      ? [
+        { href: "/profile", label: "Profile" },
+        { href: "/orders", label: "Orders" },
+      ]
+      : [
+        { href: "/auth", label: "Sign In" },
+        { href: "/auth?mode=signup", label: "Sign Up" }
+      ]
+    )
+  ];
 
   return (
     <Box
@@ -309,7 +332,22 @@ export default function Navbar() {
             spacing={4}
             display={{ base: 'none', md: 'flex' }}
           >
-            <DevToolsButton />
+            {isAdmin && (
+              <>
+                <DevToolsButton isAdmin={isAdmin} />
+                <Button
+                  as={NextLink}
+                  href="/admin/dashboard"
+                  variant="ghost"
+                  color="white"
+                  leftIcon={<Text fontSize="lg">⚙️</Text>}
+                  _hover={{ bg: 'rgba(255, 255, 255, 0.1)' }}
+                  size="sm"
+                >
+                  Admin
+                </Button>
+              </>
+            )}
             <LoginStatus session={session} />
             {session ? (
               <>
@@ -344,22 +382,7 @@ export default function Navbar() {
         </Flex>
 
         {/* Mobile Navigation */}
-        <MobileNav isOpen={isOpen} links={[
-          ...navLinks,
-          { href: "/dev/dashboard", label: "Dev Tools 🛠️" },
-          { href: "/cart", label: `Cart ${cartItemCount > 0 ? `(${cartItemCount})` : ''}` },
-          ...(session
-            ? [
-              { href: "/profile", label: "Profile" },
-              { href: "/orders", label: "Orders" },
-              ...(isAdmin ? [{ href: "/admin/dashboard", label: "Admin Dashboard" }] : [])
-            ]
-            : [
-              { href: "/auth", label: "Sign In" },
-              { href: "/auth?mode=signup", label: "Sign Up" }
-            ]
-          )
-        ]} />
+        <MobileNav isOpen={isOpen} links={mobileNavLinks} />
       </Container>
     </Box>
   );

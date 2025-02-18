@@ -44,7 +44,14 @@ async function checkDeployment() {
 
         // Check network connectivity
         console.log('\n🌐 Checking network connectivity...');
-        const ip = execSync('curl -s http://169.254.169.254/latest/meta-data/public-ipv4').toString().trim();
+        let ip;
+        try {
+            // Try to get IP from EC2 metadata
+            ip = execSync('curl -s http://169.254.169.254/latest/meta-data/public-ipv4').toString().trim();
+        } catch (err) {
+            // Fallback to provided IP
+            ip = '54.159.253.0';
+        }
         results.network.publicIP = ip;
         console.log(`✅ Public IP: ${ip}`);
 
@@ -72,12 +79,24 @@ async function checkDeployment() {
         for (const endpoint of endpoints) {
             try {
                 const response = await new Promise((resolve, reject) => {
-                    http.get(endpoint.url, (res) => {
+                    const req = http.get(endpoint.url, {
+                        timeout: 5000,
+                        headers: {
+                            'Host': `${ip}:3000`
+                        }
+                    }, (res) => {
                         let data = '';
                         res.on('data', (chunk) => data += chunk);
                         res.on('end', () => resolve({ status: res.statusCode, data }));
-                    }).on('error', reject);
+                    });
+                    
+                    req.on('error', reject);
+                    req.on('timeout', () => {
+                        req.destroy();
+                        reject(new Error('Request timed out'));
+                    });
                 });
+                
                 results.network[endpoint.name] = `Status: ${response.status}`;
                 console.log(`✅ ${endpoint.name}: Status ${response.status}`);
             } catch (err) {
@@ -103,6 +122,17 @@ async function checkDeployment() {
         } catch (err) {
             console.log('❌ Error checking system:', err.message);
             results.environment.system = `Error: ${err.message}`;
+        }
+
+        // Check MySQL connection
+        console.log('\n🗄️ Checking MySQL connection...');
+        try {
+            const mysqlStatus = execSync('systemctl is-active mysql').toString().trim();
+            results.database.mysql = mysqlStatus === 'active' ? 'Running' : 'Not running';
+            console.log(`✅ MySQL service: ${results.database.mysql}`);
+        } catch (err) {
+            results.database.mysql = 'Not running';
+            console.log('❌ MySQL service is not running');
         }
 
         // Check file permissions
@@ -144,6 +174,22 @@ async function checkDeployment() {
         }
         if (results.environment.pm2 !== 'Running') {
             console.log('- Start the application using PM2: pm2 start npm --name "kappy" -- start');
+        }
+        if (results.database.mysql !== 'Running') {
+            console.log('- Start MySQL service: sudo systemctl start mysql');
+        }
+
+        // Check environment variables
+        const envWarnings = [];
+        if (!results.environment['.env.production']?.NEXTAUTH_URL) {
+            envWarnings.push('- Set NEXTAUTH_URL in .env.production');
+        }
+        if (!results.environment['.env.production']?.NEXT_PUBLIC_API_URL) {
+            envWarnings.push('- Set NEXT_PUBLIC_API_URL in .env.production');
+        }
+        if (envWarnings.length > 0) {
+            console.log('\n⚠️ Environment variable recommendations:');
+            envWarnings.forEach(warning => console.log(warning));
         }
 
     } catch (error) {

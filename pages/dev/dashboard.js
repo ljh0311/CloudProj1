@@ -24,9 +24,14 @@ import {
     AlertIcon,
     AlertTitle,
     AlertDescription,
+    Input,
+    FormControl,
+    FormLabel,
+    VStack,
+    HStack,
 } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
-import { getSession } from 'next-auth/react';
+import { getSession, signIn } from 'next-auth/react';
 import Head from 'next/head';
 
 export default function DevDashboard() {
@@ -47,6 +52,13 @@ export default function DevDashboard() {
     });
     const [isLoading, setIsLoading] = useState(true);
     const toast = useToast();
+    const [authTest, setAuthTest] = useState({
+        email: '',
+        password: '',
+        loading: false,
+        result: null,
+        envConfig: null
+    });
 
     useEffect(() => {
         fetchData();
@@ -194,6 +206,117 @@ export default function DevDashboard() {
         ));
     };
 
+    // New function to test authentication
+    const testAuth = async () => {
+        try {
+            setAuthTest(prev => ({ ...prev, loading: true, result: null }));
+            
+            // First, check environment configuration
+            const configResponse = await fetch('/api/dev/auth-config');
+            const configResult = await configResponse.json();
+            setAuthTest(prev => ({ ...prev, envConfig: configResult }));
+
+            // Test authentication
+            const result = await signIn('credentials', {
+                redirect: false,
+                email: authTest.email,
+                password: authTest.password
+            });
+
+            setAuthTest(prev => ({
+                ...prev,
+                result: {
+                    success: !result.error,
+                    error: result.error,
+                    timestamp: new Date().toISOString()
+                }
+            }));
+
+        } catch (error) {
+            setAuthTest(prev => ({
+                ...prev,
+                result: {
+                    success: false,
+                    error: error.message,
+                    timestamp: new Date().toISOString()
+                }
+            }));
+        } finally {
+            setAuthTest(prev => ({ ...prev, loading: false }));
+        }
+    };
+
+    const renderAuthTestSection = () => (
+        <Box>
+            <VStack spacing={4} align="stretch">
+                <FormControl>
+                    <FormLabel>Test Email</FormLabel>
+                    <Input 
+                        value={authTest.email}
+                        onChange={(e) => setAuthTest(prev => ({ ...prev, email: e.target.value }))}
+                        placeholder="Enter test email"
+                    />
+                </FormControl>
+
+                <FormControl>
+                    <FormLabel>Test Password</FormLabel>
+                    <Input 
+                        type="password"
+                        value={authTest.password}
+                        onChange={(e) => setAuthTest(prev => ({ ...prev, password: e.target.value }))}
+                        placeholder="Enter test password"
+                    />
+                </FormControl>
+
+                <Button
+                    colorScheme="blue"
+                    onClick={testAuth}
+                    isLoading={authTest.loading}
+                >
+                    Test Authentication
+                </Button>
+
+                {authTest.envConfig && (
+                    <Alert status="info" mt={4}>
+                        <AlertIcon />
+                        <Box>
+                            <AlertTitle>Environment Configuration</AlertTitle>
+                            <AlertDescription>
+                                <Code display="block" whiteSpace="pre" mt={2}>
+                                    NEXTAUTH_URL: {authTest.envConfig.NEXTAUTH_URL}
+                                    <br />
+                                    NEXT_PUBLIC_API_URL: {authTest.envConfig.NEXT_PUBLIC_API_URL}
+                                    <br />
+                                    Current Instance IP: {authTest.envConfig.instanceIP}
+                                </Code>
+                            </AlertDescription>
+                        </Box>
+                    </Alert>
+                )}
+
+                {authTest.result && (
+                    <Alert 
+                        status={authTest.result.success ? "success" : "error"}
+                        mt={4}
+                    >
+                        <AlertIcon />
+                        <Box>
+                            <AlertTitle>
+                                {authTest.result.success ? "Authentication Successful" : "Authentication Failed"}
+                            </AlertTitle>
+                            <AlertDescription>
+                                <Text>Timestamp: {authTest.result.timestamp}</Text>
+                                {authTest.result.error && (
+                                    <Text color="red.500">Error: {authTest.result.error}</Text>
+                                )}
+                            </AlertDescription>
+                        </Box>
+                    </Alert>
+                )}
+            </VStack>
+        </Box>
+    );
+
     return (
         <>
             <Head>
@@ -220,6 +343,7 @@ export default function DevDashboard() {
                         <Tab>Products</Tab>
                         <Tab>Orders</Tab>
                         <Tab>Differences</Tab>
+                        <Tab>Auth Testing</Tab>
                     </TabList>
 
                     <TabPanels>
@@ -293,6 +417,10 @@ export default function DevDashboard() {
                                     </TabPanel>
                                 </TabPanels>
                             </Tabs>
+                        </TabPanel>
+
+                        <TabPanel>
+                            {renderAuthTestSection()}
                         </TabPanel>
                     </TabPanels>
                 </Tabs>

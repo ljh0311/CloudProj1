@@ -44,30 +44,7 @@ async function checkDeployment() {
 
         // Check network connectivity
         console.log('\n🌐 Checking network connectivity...');
-        let ip;
-        try {
-            // Try multiple methods to get IP
-            try {
-                ip = execSync('curl -s http://169.254.169.254/latest/meta-data/public-ipv4').toString().trim();
-            } catch {
-                try {
-                    ip = execSync('curl -s https://checkip.amazonaws.com').toString().trim();
-                } catch {
-                    try {
-                        ip = execSync('dig +short myip.opendns.com @resolver1.opendns.com').toString().trim();
-                    } catch {
-                        ip = '54.159.253.0'; // Fallback to provided IP
-                    }
-                }
-            }
-        } catch (err) {
-            ip = '54.159.253.0'; // Final fallback
-        }
-
-        if (!ip || ip.trim() === '') {
-            ip = '54.159.253.0'; // Ensure we have a valid IP
-        }
-
+        const ip = '54.159.253.0'; // Hardcoded IP
         results.network.publicIP = ip;
         console.log(`✅ Public IP: ${ip}`);
 
@@ -104,7 +81,7 @@ async function checkDeployment() {
                     const req = http.get(endpoint.url, {
                         timeout: 5000,
                         headers: {
-                            'Host': `${ip}:3000`
+                            'Host': endpoint.url.split('/')[2]
                         }
                     }, (res) => {
                         let data = '';

@@ -3,8 +3,12 @@ const nextConfig = {
     reactStrictMode: true,
     swcMinify: true,
     images: {
-        domains: [],
+        domains: ['54.159.253.0', 'localhost'],
         unoptimized: true
+    },
+    server: {
+        host: '0.0.0.0',  // Listen on all network interfaces
+        port: 3000
     }
 }
 

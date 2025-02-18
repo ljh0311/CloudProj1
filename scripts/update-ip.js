@@ -1,11 +1,30 @@
-require('dotenv').config();
+try {
+    require('dotenv').config();
+} catch (error) {
+    console.log('⚠️ dotenv package not found, installing...');
+    require('child_process').execSync('npm install dotenv', { stdio: 'inherit' });
+    require('dotenv').config();
+}
+
 const fs = require('fs').promises;
 const path = require('path');
+const { execSync } = require('child_process');
 
 const NEW_IP = '54.159.253.0';
 
 async function updateConfigurations() {
     try {
+        // Ensure all required packages are installed
+        const requiredPackages = ['dotenv'];
+        for (const pkg of requiredPackages) {
+            try {
+                require.resolve(pkg);
+            } catch (error) {
+                console.log(`⚠️ Installing ${pkg}...`);
+                execSync(`npm install ${pkg}`, { stdio: 'inherit' });
+            }
+        }
+
         // Update .env files
         const envFiles = ['.env', '.env.local', '.env.production'];
         
@@ -43,16 +62,15 @@ async function updateConfigurations() {
         }
 
         // Add the new IP to scripts
-        const updateScript = `
-#!/bin/bash
+        const updateScript = `#!/bin/bash
 
 # Update package lists
-sudo apt-get update
+sudo yum update -y
 
 # Install Node.js and npm if not already installed
 if ! command -v node &> /dev/null; then
-    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-    sudo apt-get install -y nodejs
+    curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash -
+    sudo yum install -y nodejs
 fi
 
 # Install PM2 if not already installed
@@ -61,7 +79,7 @@ if ! command -v pm2 &> /dev/null; then
 fi
 
 # Navigate to application directory
-cd /home/ubuntu/kappy
+cd /home/ec2-user/app/CloudProj1
 
 # Install dependencies
 npm install
@@ -76,7 +94,7 @@ pm2 restart kappy || pm2 start npm --name "kappy" -- start
 pm2 save
 
 # Configure PM2 to start on boot
-sudo env PATH=$PATH:/usr/bin pm2 startup systemd -u ubuntu --hp /home/ubuntu
+sudo env PATH=$PATH:/usr/bin pm2 startup systemd -u ec2-user --hp /home/ec2-user
 
 echo "Deployment completed successfully!"
 `;
@@ -86,11 +104,8 @@ echo "Deployment completed successfully!"
 
         console.log('\n✨ IP configuration update completed successfully!');
         console.log('\nNext steps:');
-        console.log('1. Commit and push these changes to your repository');
-        console.log('2. SSH into your EC2 instance');
-        console.log('3. Pull the latest changes');
-        console.log('4. Run: chmod +x scripts/deploy.sh');
-        console.log('5. Run: ./scripts/deploy.sh');
+        console.log('1. Run: chmod +x scripts/deploy.sh');
+        console.log('2. Run: ./scripts/deploy.sh');
         console.log('\nMake sure to update your security group to allow traffic from the new IP!');
 
     } catch (error) {

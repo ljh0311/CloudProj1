@@ -29,6 +29,8 @@ import {
     FormLabel,
     VStack,
     HStack,
+    Collapse,
+    useDisclosure,
 } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
 import { getSession, signIn } from 'next-auth/react';
@@ -38,38 +40,45 @@ import Navbar from '../../components/Navbar';
 // Add new component for script execution
 const ScriptRunner = () => {
     const [scriptStatus, setScriptStatus] = useState({});
+    const [scriptOutput, setScriptOutput] = useState({});
     const [isRunning, setIsRunning] = useState(false);
+    const toast = useToast();
 
     const scripts = [
         {
             name: 'Migrate Database',
             id: 'migrate-db',
             description: 'Initialize or update database schema',
-            script: 'migrate-db.js'
+            script: 'migrate-db.js',
+            color: 'blue'
         },
         {
             name: 'Migrate Orders',
             id: 'migrate-orders',
             description: 'Update orders table structure',
-            script: 'migrate-orders.js'
+            script: 'migrate-orders.js',
+            color: 'purple'
         },
         {
             name: 'Sync Data',
             id: 'sync-data',
             description: 'Synchronize data between JSON and MySQL',
-            script: 'sync-data.js'
+            script: 'sync-data.js',
+            color: 'green'
         },
         {
             name: 'Hash Passwords',
             id: 'hash-passwords',
             description: 'Update password hashes in the database',
-            script: 'hash-passwords.js'
+            script: 'hash-passwords.js',
+            color: 'orange'
         }
     ];
 
     const runScript = async (scriptName) => {
         setIsRunning(true);
         setScriptStatus(prev => ({ ...prev, [scriptName]: 'running' }));
+        setScriptOutput(prev => ({ ...prev, [scriptName]: '' }));
         
         try {
             const response = await fetch('/api/dev/run-script', {
@@ -84,63 +93,143 @@ const ScriptRunner = () => {
             
             if (response.ok) {
                 setScriptStatus(prev => ({ ...prev, [scriptName]: 'success' }));
+                setScriptOutput(prev => ({ ...prev, [scriptName]: data.output }));
+                toast({
+                    title: "Script executed successfully",
+                    description: data.message,
+                    status: "success",
+                    duration: 5000,
+                    isClosable: true,
+                });
             } else {
                 setScriptStatus(prev => ({ ...prev, [scriptName]: 'error' }));
-                console.error('Script error:', data.error);
+                setScriptOutput(prev => ({ ...prev, [scriptName]: data.error }));
+                toast({
+                    title: "Script execution failed",
+                    description: data.error,
+                    status: "error",
+                    duration: 5000,
+                    isClosable: true,
+                });
             }
         } catch (error) {
             console.error('Error running script:', error);
             setScriptStatus(prev => ({ ...prev, [scriptName]: 'error' }));
+            setScriptOutput(prev => ({ ...prev, [scriptName]: error.message }));
+            toast({
+                title: "Error",
+                description: error.message,
+                status: "error",
+                duration: 5000,
+                isClosable: true,
+            });
         } finally {
             setIsRunning(false);
         }
     };
 
-    return (
-        <VStack spacing={4} align="stretch">
-            <Text fontSize="lg" fontWeight="bold" mb={4}>
-                Database Management Scripts
-            </Text>
-            {scripts.map((script) => (
-                <Box
-                    key={script.id}
-                    p={4}
-                    borderWidth="1px"
-                    borderRadius="lg"
-                    bg="gray.700"
-                >
+    const ScriptCard = ({ script }) => {
+        const { isOpen, onToggle } = useDisclosure();
+        const hasOutput = scriptOutput[script.script];
+
+        return (
+            <Box
+                p={4}
+                borderWidth="1px"
+                borderRadius="lg"
+                bg="gray.700"
+                _hover={{ borderColor: `${script.color}.400` }}
+                transition="all 0.2s"
+            >
+                <VStack align="stretch" spacing={4}>
                     <HStack justify="space-between">
                         <VStack align="start" spacing={1}>
-                            <Text fontWeight="bold">{script.name}</Text>
+                            <HStack>
+                                <Text fontWeight="bold" color="white">{script.name}</Text>
+                                {scriptStatus[script.script] && (
+                                    <Badge
+                                        colorScheme={
+                                            scriptStatus[script.script] === 'success'
+                                                ? 'green'
+                                                : scriptStatus[script.script] === 'error'
+                                                ? 'red'
+                                                : 'yellow'
+                                        }
+                                    >
+                                        {scriptStatus[script.script]}
+                                    </Badge>
+                                )}
+                            </HStack>
                             <Text fontSize="sm" color="gray.400">
                                 {script.description}
                             </Text>
                         </VStack>
                         <HStack>
-                            {scriptStatus[script.script] && (
-                                <Badge
-                                    colorScheme={
-                                        scriptStatus[script.script] === 'success'
-                                            ? 'green'
-                                            : scriptStatus[script.script] === 'error'
-                                            ? 'red'
-                                            : 'yellow'
-                                    }
+                            {hasOutput && (
+                                <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    color="gray.300"
+                                    onClick={onToggle}
                                 >
-                                    {scriptStatus[script.script]}
-                                </Badge>
+                                    {isOpen ? 'Hide Output' : 'Show Output'}
+                                </Button>
                             )}
                             <Button
-                                colorScheme="blue"
+                                colorScheme={script.color}
                                 size="sm"
                                 isLoading={isRunning && scriptStatus[script.script] === 'running'}
                                 onClick={() => runScript(script.script)}
+                                leftIcon={<Text>▶</Text>}
                             >
                                 Run Script
                             </Button>
                         </HStack>
                     </HStack>
-                </Box>
+
+                    <Collapse in={isOpen}>
+                        {hasOutput && (
+                            <Box
+                                mt={2}
+                                p={3}
+                                bg="gray.800"
+                                borderRadius="md"
+                                borderWidth="1px"
+                                borderColor="gray.600"
+                            >
+                                <Code display="block" whiteSpace="pre-wrap" bg="transparent" color="gray.300">
+                                    {scriptOutput[script.script]}
+                                </Code>
+                            </Box>
+                        )}
+                    </Collapse>
+                </VStack>
+            </Box>
+        );
+    };
+
+    return (
+        <VStack spacing={4} align="stretch">
+            <HStack justify="space-between" mb={4}>
+                <Text fontSize="lg" fontWeight="bold" color="gray.700">
+                    Database Management Scripts
+                </Text>
+                <Button
+                    size="sm"
+                    variant="outline"
+                    colorScheme="blue"
+                    isDisabled={isRunning}
+                    onClick={() => {
+                        setScriptStatus({});
+                        setScriptOutput({});
+                    }}
+                >
+                    Clear All Results
+                </Button>
+            </HStack>
+
+            {scripts.map((script) => (
+                <ScriptCard key={script.id} script={script} />
             ))}
         </VStack>
     );

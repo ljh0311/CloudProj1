@@ -46,14 +46,36 @@ async function checkDeployment() {
         console.log('\n🌐 Checking network connectivity...');
         let ip;
         try {
-            // Try to get IP from EC2 metadata
-            ip = execSync('curl -s http://169.254.169.254/latest/meta-data/public-ipv4').toString().trim();
+            // Try multiple methods to get IP
+            try {
+                ip = execSync('curl -s http://169.254.169.254/latest/meta-data/public-ipv4').toString().trim();
+            } catch {
+                try {
+                    ip = execSync('curl -s https://checkip.amazonaws.com').toString().trim();
+                } catch {
+                    try {
+                        ip = execSync('dig +short myip.opendns.com @resolver1.opendns.com').toString().trim();
+                    } catch {
+                        ip = '54.159.253.0'; // Fallback to provided IP
+                    }
+                }
+            }
         } catch (err) {
-            // Fallback to provided IP
-            ip = '54.159.253.0';
+            ip = '54.159.253.0'; // Final fallback
         }
+
+        if (!ip || ip.trim() === '') {
+            ip = '54.159.253.0'; // Ensure we have a valid IP
+        }
+
         results.network.publicIP = ip;
         console.log(`✅ Public IP: ${ip}`);
+
+        // Check if IP is in environment variables
+        const envIP = process.env.NEXT_PUBLIC_API_URL ? new URL(process.env.NEXT_PUBLIC_API_URL).hostname : null;
+        if (envIP && envIP !== ip) {
+            console.log(`⚠️ Warning: Environment IP (${envIP}) differs from detected IP (${ip})`);
+        }
 
         // Check ports
         const ports = [80, 443, 3000];

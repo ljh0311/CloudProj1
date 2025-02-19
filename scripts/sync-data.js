@@ -45,6 +45,11 @@ async function createDatabase() {
         // Use the database
         await connection.query(`USE ${dbConfig.database}`);
 
+        // Drop existing tables if they exist
+        await connection.query(`DROP TABLE IF EXISTS orders`);
+        await connection.query(`DROP TABLE IF EXISTS users`);
+        await connection.query(`DROP TABLE IF EXISTS products`);
+
         // Create users table if it doesn't exist
         await connection.query(`
             CREATE TABLE IF NOT EXISTS users (
@@ -91,6 +96,9 @@ async function createDatabase() {
         `);
 
         console.log('All tables created successfully');
+    } catch (error) {
+        console.error('Error creating database:', error);
+        throw error;
     } finally {
         await connection.end();
     }
@@ -99,6 +107,10 @@ async function createDatabase() {
 async function syncData() {
     let connection;
     try {
+        // First create/update database schema
+        await createDatabase();
+        console.log('Database schema updated');
+
         // Connect to MySQL
         connection = await mysql.createConnection(dbConfig);
         console.log('Connected to MySQL database');
@@ -121,13 +133,13 @@ async function syncData() {
 
                 if (existingUser.length === 0) {
                     await connection.execute(
-                        'INSERT INTO users (id, name, email, password, role, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                        [user.id, user.name, user.email, user.password, user.role, user.createdAt, user.updatedAt]
+                        'INSERT INTO users (id, name, email, password, role) VALUES (?, ?, ?, ?, ?)',
+                        [user.id, user.name, user.email, user.password, user.role]
                     );
                 } else {
                     await connection.execute(
-                        'UPDATE users SET name = ?, email = ?, password = ?, role = ?, updatedAt = ? WHERE id = ?',
-                        [user.name, user.email, user.password, user.role, user.updatedAt, user.id]
+                        'UPDATE users SET name = ?, email = ?, password = ?, role = ? WHERE id = ?',
+                        [user.name, user.email, user.password, user.role, user.id]
                     );
                 }
             }
@@ -143,13 +155,13 @@ async function syncData() {
 
                 if (existingProduct.length === 0) {
                     await connection.execute(
-                        'INSERT INTO products (id, name, price, category, image, material, description, size_s_stock, size_m_stock, size_l_stock, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                        [product.id, product.name, product.price, product.category, product.image, product.material, product.description, product.size_s_stock, product.size_m_stock, product.size_l_stock, product.createdAt, product.updatedAt]
+                        'INSERT INTO products (id, name, price, category, image, material, description, size_s_stock, size_m_stock, size_l_stock) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                        [product.id, product.name, product.price, product.category, product.image, product.material, product.description, product.size_s_stock, product.size_m_stock, product.size_l_stock]
                     );
                 } else {
                     await connection.execute(
-                        'UPDATE products SET name = ?, price = ?, category = ?, image = ?, material = ?, description = ?, size_s_stock = ?, size_m_stock = ?, size_l_stock = ?, updatedAt = ? WHERE id = ?',
-                        [product.name, product.price, product.category, product.image, product.material, product.description, product.size_s_stock, product.size_m_stock, product.size_l_stock, product.updatedAt, product.id]
+                        'UPDATE products SET name = ?, price = ?, category = ?, image = ?, material = ?, description = ?, size_s_stock = ?, size_m_stock = ?, size_l_stock = ? WHERE id = ?',
+                        [product.name, product.price, product.category, product.image, product.material, product.description, product.size_s_stock, product.size_m_stock, product.size_l_stock, product.id]
                     );
                 }
             }
@@ -165,13 +177,13 @@ async function syncData() {
 
                 if (existingOrder.length === 0) {
                     await connection.execute(
-                        'INSERT INTO orders (id, userId, items, total, status, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                        [order.id, order.userId, JSON.stringify(order.items), order.total, order.status, order.createdAt, order.updatedAt]
+                        'INSERT INTO orders (id, userId, items, total, status) VALUES (?, ?, ?, ?, ?)',
+                        [order.id, order.userId, JSON.stringify(order.items), order.total, order.status]
                     );
                 } else {
                     await connection.execute(
-                        'UPDATE orders SET userId = ?, items = ?, total = ?, status = ?, updatedAt = ? WHERE id = ?',
-                        [order.userId, JSON.stringify(order.items), order.total, order.status, order.updatedAt, order.id]
+                        'UPDATE orders SET userId = ?, items = ?, total = ?, status = ? WHERE id = ?',
+                        [order.userId, JSON.stringify(order.items), order.total, order.status, order.id]
                     );
                 }
             }

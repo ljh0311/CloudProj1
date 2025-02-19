@@ -46,46 +46,68 @@ const ScriptRunner = () => {
 
     const scripts = [
         {
-            name: 'Update IP Configuration',
-            id: 'update-ip',
-            description: 'Update IP configurations for EC2 deployment',
-            script: 'update-ip.js',
-            color: 'cyan'
+            category: 'Database Management',
+            scripts: [
+                {
+                    name: 'Database Usage Analysis',
+                    id: 'check-database',
+                    description: 'Analyze which files use MySQL vs JSON storage',
+                    script: 'check-database-usage.js',
+                    color: 'purple'
+                },
+                {
+                    name: 'Sync Data',
+                    id: 'sync-data',
+                    description: 'Synchronize data between JSON and MySQL',
+                    script: 'sync-data.js',
+                    color: 'green'
+                },
+                {
+                    name: 'Migrate Database',
+                    id: 'migrate-db',
+                    description: 'Initialize or update database schema',
+                    script: 'migrate-db.js',
+                    color: 'blue'
+                },
+                {
+                    name: 'Hash Passwords',
+                    id: 'hash-passwords',
+                    description: 'Update password hashes in the database',
+                    script: 'hash-passwords.js',
+                    color: 'orange'
+                }
+            ]
         },
         {
-            name: 'Check Deployment',
-            id: 'check-deployment',
-            description: 'Run diagnostics on AWS deployment configuration',
-            script: 'check-deployment.js',
-            color: 'yellow'
+            category: 'Deployment',
+            scripts: [
+                {
+                    name: 'Update IP Configuration',
+                    id: 'update-ip',
+                    description: 'Update IP configurations for EC2 deployment',
+                    script: 'update-ip.js',
+                    color: 'cyan'
+                },
+                {
+                    name: 'Check Deployment',
+                    id: 'check-deployment',
+                    description: 'Run diagnostics on AWS deployment configuration',
+                    script: 'check-deployment.js',
+                    color: 'yellow'
+                }
+            ]
         },
         {
-            name: 'Migrate Database',
-            id: 'migrate-db',
-            description: 'Initialize or update database schema',
-            script: 'migrate-db.js',
-            color: 'blue'
-        },
-        {
-            name: 'Migrate Orders',
-            id: 'migrate-orders',
-            description: 'Update orders table structure',
-            script: 'migrate-orders.js',
-            color: 'purple'
-        },
-        {
-            name: 'Sync Data',
-            id: 'sync-data',
-            description: 'Synchronize data between JSON and MySQL',
-            script: 'sync-data.js',
-            color: 'green'
-        },
-        {
-            name: 'Hash Passwords',
-            id: 'hash-passwords',
-            description: 'Update password hashes in the database',
-            script: 'hash-passwords.js',
-            color: 'orange'
+            category: 'Data Migration',
+            scripts: [
+                {
+                    name: 'Migrate Orders',
+                    id: 'migrate-orders',
+                    description: 'Update orders table structure',
+                    script: 'migrate-orders.js',
+                    color: 'teal'
+                }
+            ]
         }
     ];
 
@@ -223,10 +245,10 @@ const ScriptRunner = () => {
     };
 
     return (
-        <VStack spacing={4} align="stretch">
+        <VStack spacing={6} align="stretch">
             <HStack justify="space-between" mb={4}>
-                <Text fontSize="lg" fontWeight="bold" color="gray.700">
-                    Database Management Scripts
+                <Text fontSize="lg" fontWeight="bold" color="white">
+                    Development Scripts
                 </Text>
                 <Button
                     size="sm"
@@ -242,8 +264,25 @@ const ScriptRunner = () => {
                 </Button>
             </HStack>
 
-            {scripts.map((script) => (
-                <ScriptCard key={script.id} script={script} />
+            {scripts.map((category) => (
+                <Box key={category.category}>
+                    <Text
+                        color="white"
+                        fontSize="md"
+                        fontWeight="bold"
+                        mb={3}
+                        borderBottom="1px"
+                        borderColor="whiteAlpha.200"
+                        pb={2}
+                    >
+                        {category.category}
+                    </Text>
+                    <VStack spacing={4} align="stretch" mb={6}>
+                        {category.scripts.map((script) => (
+                            <ScriptCard key={script.id} script={script} />
+                        ))}
+                    </VStack>
+                </Box>
             ))}
         </VStack>
     );

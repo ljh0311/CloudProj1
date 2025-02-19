@@ -247,7 +247,7 @@ const ScriptRunner = () => {
     return (
         <VStack spacing={6} align="stretch">
             <HStack justify="space-between" mb={4}>
-                <Text fontSize="lg" fontWeight="bold" color="white">
+                <Text fontSize="lg" fontWeight="bold" color="black">
                     Development Scripts
                 </Text>
                 <Button

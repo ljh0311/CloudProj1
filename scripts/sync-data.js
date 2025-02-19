@@ -3,12 +3,21 @@ const fs = require('fs').promises;
 const path = require('path');
 require('dotenv').config();
 
+// Use DB_ prefix to match your .env file
 const dbConfig = {
-    host: process.env.MYSQL_HOST,
-    user: process.env.MYSQL_USER,
-    password: process.env.MYSQL_PASSWORD,
-    database: process.env.MYSQL_DATABASE
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || 'KappyAdmin',
+    database: process.env.DB_NAME || 'kappy_db',
+    // Remove socketPath as MySQL uses default socket location
 };
+
+console.log('Using database config:', {
+    host: dbConfig.host,
+    user: dbConfig.user,
+    database: dbConfig.database
+    // Don't log the password
+});
 
 async function readJsonFile(filePath) {
     try {
@@ -17,6 +26,73 @@ async function readJsonFile(filePath) {
     } catch (error) {
         console.error(`Error reading ${filePath}:`, error);
         return null;
+    }
+}
+
+async function createDatabase() {
+    // First connect without database selected
+    const connection = await mysql.createConnection({
+        host: dbConfig.host,
+        user: dbConfig.user,
+        password: dbConfig.password
+    });
+
+    try {
+        // Create database if it doesn't exist
+        await connection.query(`CREATE DATABASE IF NOT EXISTS ${dbConfig.database}`);
+        console.log('Database created or already exists');
+
+        // Use the database
+        await connection.query(`USE ${dbConfig.database}`);
+
+        // Create users table if it doesn't exist
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS users (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                password VARCHAR(255) NOT NULL,
+                role VARCHAR(50) DEFAULT 'customer',
+                createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            )
+        `);
+
+        // Create products table if it doesn't exist
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS products (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                price DECIMAL(10,2) NOT NULL,
+                category VARCHAR(100),
+                image VARCHAR(255),
+                material VARCHAR(100),
+                description TEXT,
+                size_s_stock INT DEFAULT 0,
+                size_m_stock INT DEFAULT 0,
+                size_l_stock INT DEFAULT 0,
+                createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+            )
+        `);
+
+        // Create orders table if it doesn't exist
+        await connection.query(`
+            CREATE TABLE IF NOT EXISTS orders (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                userId INT NOT NULL,
+                items JSON NOT NULL,
+                total DECIMAL(10,2) NOT NULL,
+                status VARCHAR(50) DEFAULT 'pending',
+                createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (userId) REFERENCES users(id)
+            )
+        `);
+
+        console.log('All tables created successfully');
+    } finally {
+        await connection.end();
     }
 }
 

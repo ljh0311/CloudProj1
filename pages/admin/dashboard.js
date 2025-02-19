@@ -205,6 +205,7 @@ export default function AdminDashboard() {
     const [itemToDelete, setItemToDelete] = useState(null);
     const cancelRef = useRef();
     const toast = useToast();
+    const [showPassword, setShowPassword] = useState({});
 
     const {
         isOpen: isProductModalOpen,
@@ -387,6 +388,46 @@ export default function AdminDashboard() {
         });
     };
 
+    // Add this function to handle password viewing
+    const handleViewPassword = async (userId) => {
+        try {
+            const response = await fetch('/api/admin/view-password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ userId }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to retrieve password');
+            }
+
+            const data = await response.json();
+            setShowPassword(prev => ({
+                ...prev,
+                [userId]: data.password
+            }));
+
+            // Auto-hide password after 10 seconds
+            setTimeout(() => {
+                setShowPassword(prev => ({
+                    ...prev,
+                    [userId]: null
+                }));
+            }, 10000);
+
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: "Failed to retrieve password",
+                status: "error",
+                duration: 3000,
+                isClosable: true,
+            });
+        }
+    };
+
     return (
         <>
             <Head>
@@ -519,6 +560,7 @@ export default function AdminDashboard() {
                                                     <Th color="white">Name</Th>
                                                     <Th color="white">Email</Th>
                                                     <Th color="white">Role</Th>
+                                                    <Th color="white">Password</Th>
                                                     <Th color="white">Created At</Th>
                                                     <Th color="white">Actions</Th>
                                                 </Tr>
@@ -535,6 +577,31 @@ export default function AdminDashboard() {
                                                             >
                                                                 {user.role}
                                                             </Badge>
+                                                        </Td>
+                                                        <Td color="white">
+                                                            {showPassword[user.id] ? (
+                                                                <HStack>
+                                                                    <Text color="yellow.300">{showPassword[user.id]}</Text>
+                                                                    <Button
+                                                                        size="sm"
+                                                                        colorScheme="red"
+                                                                        onClick={() => setShowPassword(prev => ({
+                                                                            ...prev,
+                                                                            [user.id]: null
+                                                                        }))}
+                                                                    >
+                                                                        Hide
+                                                                    </Button>
+                                                                </HStack>
+                                                            ) : (
+                                                                <Button
+                                                                    size="sm"
+                                                                    colorScheme="blue"
+                                                                    onClick={() => handleViewPassword(user.id)}
+                                                                >
+                                                                    View Password
+                                                                </Button>
+                                                            )}
                                                         </Td>
                                                         <Td color="white">
                                                             {formatDate(user.createdAt)}

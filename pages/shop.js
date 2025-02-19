@@ -24,7 +24,6 @@ import { Input, Select } from '@chakra-ui/react';
 import { Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter, ModalBody, ModalCloseButton } from '@chakra-ui/react';
 import { FormControl, FormLabel, Textarea } from '@chakra-ui/react';
 import { useCart } from '../components/CartContext';
-import productsData from '../data/products.json';
 import { useSession } from 'next-auth/react';
 
 const ProductCard = ({ product }) => {
@@ -364,8 +363,8 @@ const AddProductModal = ({ isOpen, onClose }) => {
 };
 
 export default function Shop() {
-    const [products, setProducts] = useState(productsData.products || []);
-    const [loading, setLoading] = useState(false);
+    const [products, setProducts] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [categoryFilter, setCategoryFilter] = useState('');
@@ -376,6 +375,28 @@ export default function Shop() {
 
     // Check if user is authenticated and is an admin
     const isAdmin = session?.user?.role === 'admin';
+
+    // Fetch products from MySQL database
+    useEffect(() => {
+        const fetchProducts = async () => {
+            try {
+                setLoading(true);
+                const response = await fetch('/api/products');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch products');
+                }
+                const data = await response.json();
+                setProducts(data.products);
+            } catch (error) {
+                console.error('Error fetching products:', error);
+                setError(error.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchProducts();
+    }, []);
 
     // Filter and sort products based on user selections
     const filteredProducts = products

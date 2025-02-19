@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { createMySQLUser, getMySQLUserByEmail, addUserFallback, getUserByEmailFallback } from '../../../utils/db';
+import { getUserByEmail, createUser } from '../../../lib/mysql';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -18,14 +18,8 @@ export default async function handler(req, res) {
             return res.status(400).json({ message: 'Password must be at least 6 characters' });
         }
 
-        // Check if user exists in MySQL first
-        let existingUser = await getMySQLUserByEmail(email);
-        
-        // If MySQL check fails, check JSON
-        if (!existingUser) {
-            existingUser = await getUserByEmailFallback(email);
-        }
-
+        // Check if user exists
+        const existingUser = await getUserByEmail(email);
         if (existingUser) {
             return res.status(400).json({ message: 'Email already registered' });
         }
@@ -33,28 +27,21 @@ export default async function handler(req, res) {
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 12);
 
-        // Create new user object
-        const newUser = {
+        // Create new user
+        const userId = await createUser({
             name,
             email: email.toLowerCase(),
             password: hashedPassword,
             role: 'customer'
-        };
-
-        try {
-            // Try to create user in MySQL first
-            const userId = await createMySQLUser(newUser);
-            newUser.id = userId;
-        } catch (dbError) {
-            console.error('MySQL creation failed, falling back to JSON:', dbError);
-            // If MySQL fails, fall back to JSON
-            const createdUser = await addUserFallback(newUser);
-            newUser.id = createdUser.id;
-        }
+        });
 
         // Return success without password
-        const { password: _, ...userWithoutPassword } = newUser;
-        res.status(201).json(userWithoutPassword);
+        res.status(201).json({
+            id: userId,
+            name,
+            email: email.toLowerCase(),
+            role: 'customer'
+        });
 
     } catch (error) {
         console.error('Signup error:', error);

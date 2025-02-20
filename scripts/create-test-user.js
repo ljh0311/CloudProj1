@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const mysql = require('mysql2/promise');
+const { v4: uuidv4 } = require('uuid');
 require('dotenv').config();
 
 async function createTestUser() {
@@ -13,6 +14,7 @@ async function createTestUser() {
     try {
         // Test user credentials
         const testUser = {
+            id: uuidv4(),
             name: 'Test User',
             email: 'test@example.com',
             password: await bcrypt.hash('testpass123', 12),
@@ -32,8 +34,8 @@ async function createTestUser() {
 
         // Create the test user
         const [result] = await connection.execute(
-            'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
-            [testUser.name, testUser.email, testUser.password, testUser.role]
+            'INSERT INTO users (id, name, email, password, role) VALUES (?, ?, ?, ?, ?)',
+            [testUser.id, testUser.name, testUser.email, testUser.password, testUser.role]
         );
 
         console.log('Test user created successfully');

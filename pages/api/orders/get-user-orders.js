@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]';
-import { readJsonFile } from '../../../utils/jsonOperations';
+import { getOrders } from '../../../lib/db-service';
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
@@ -14,14 +14,17 @@ export default async function handler(req, res) {
             return res.status(401).json({ message: 'Not authenticated' });
         }
 
-        // Read orders from orders.json
-        const { orders = [] } = await readJsonFile('orders.json');
-
-        // Filter orders for the current user
-        const userOrders = orders.filter(order => order.userId === session.user.id);
+        // Fetch orders from MySQL database for the current user
+        const result = await getOrders(session.user.id);
+        
+        if (!result.success) {
+            throw new Error(result.error || 'Failed to fetch orders');
+        }
 
         // Sort orders by creation date (newest first)
-        userOrders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        const userOrders = result.data.sort((a, b) => 
+            new Date(b.createdAt) - new Date(a.createdAt)
+        );
 
         res.status(200).json({ orders: userOrders });
     } catch (error) {

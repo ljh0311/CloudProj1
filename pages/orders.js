@@ -57,13 +57,15 @@ const OrderCard = ({ order }) => {
                     <VStack spacing={4} align="stretch">
                         <HStack justify="space-between">
                             <Text color="white" fontSize="sm">
-                                Order #{order.id}
+                                Order #{order.orderNumber || order.id}
                             </Text>
                             <Badge
                                 colorScheme={
-                                    order.status === 'completed' ? 'green' :
+                                    order.status === 'delivered' ? 'green' :
                                     order.status === 'processing' ? 'yellow' :
-                                    'red'
+                                    order.status === 'shipped' ? 'blue' :
+                                    order.status === 'cancelled' ? 'red' :
+                                    'gray'
                                 }
                             >
                                 {order.status}
@@ -75,11 +77,11 @@ const OrderCard = ({ order }) => {
                                 {formatDate(order.createdAt)}
                             </Text>
                             <Text color="white" fontWeight="bold">
-                                ${order.totalAmount.toFixed(2)}
+                                ${(order.total || order.totalAmount).toFixed(2)}
                             </Text>
                         </HStack>
                         <Text color="whiteAlpha.800" fontSize="sm">
-                            {order.items.length} item{order.items.length !== 1 ? 's' : ''}
+                            {JSON.parse(order.items || '[]').length} item{JSON.parse(order.items || '[]').length !== 1 ? 's' : ''}
                         </Text>
                     </VStack>
                 </CardBody>
@@ -96,9 +98,11 @@ const OrderCard = ({ order }) => {
                             <HStack justify="space-between">
                                 <Badge
                                     colorScheme={
-                                        order.status === 'completed' ? 'green' :
+                                        order.status === 'delivered' ? 'green' :
                                         order.status === 'processing' ? 'yellow' :
-                                        'red'
+                                        order.status === 'shipped' ? 'blue' :
+                                        order.status === 'cancelled' ? 'red' :
+                                        'gray'
                                     }
                                     px={2}
                                     py={1}
@@ -121,7 +125,7 @@ const OrderCard = ({ order }) => {
                                     </Tr>
                                 </Thead>
                                 <Tbody>
-                                    {order.items.map((item, index) => (
+                                    {JSON.parse(order.items || '[]').map((item, index) => (
                                         <Tr key={index}>
                                             <Td>
                                                 <HStack>
@@ -147,7 +151,7 @@ const OrderCard = ({ order }) => {
 
                             <HStack justify="space-between">
                                 <Text fontWeight="bold">Total Amount:</Text>
-                                <Text fontWeight="bold">${order.totalAmount.toFixed(2)}</Text>
+                                <Text fontWeight="bold">${(order.total || order.totalAmount).toFixed(2)}</Text>
                             </HStack>
 
                             {order.status === 'processing' && (

@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "next lint",
     "format": "prettier --write .",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "init-db": "node -r dotenv/config scripts/init-db.js"
   },
   "dependencies": {
     "@chakra-ui/icons": "^2.2.4",

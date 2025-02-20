@@ -1,5 +1,5 @@
 import { getSession } from 'next-auth/react';
-import { readJsonFile, writeJsonFile } from '../../../utils/jsonOperations';
+import { executeQuery } from '../../../lib/mysql';
 
 export default async function handler(req, res) {
     if (req.method !== 'PUT') {
@@ -12,48 +12,70 @@ export default async function handler(req, res) {
             return res.status(401).json({ message: 'Not authenticated' });
         }
 
-        const { name, email } = req.body;
+        const { name, email, shippingAddress, billingAddress } = req.body;
+
         if (!name || !email) {
-            return res.status(400).json({ message: 'Missing required fields' });
-        }
-
-        // Read current users data
-        const { users } = await readJsonFile('users.json');
-
-        // Find and update user
-        const userIndex = users.findIndex(u => u.id === session.user.id);
-        if (userIndex === -1) {
-            return res.status(404).json({ message: 'User not found' });
+            return res.status(400).json({ message: 'Name and email are required' });
         }
 
         // Check if email is already taken by another user
-        const emailExists = users.some(u => u.email === email && u.id !== session.user.id);
-        if (emailExists) {
-            return res.status(400).json({ message: 'Email already in use' });
+        if (email !== session.user.email) {
+            const emailCheck = await executeQuery(
+                'SELECT id FROM users WHERE email = ? AND id != ?',
+                [email, session.user.id]
+            );
+
+            if (emailCheck.success && emailCheck.data.length > 0) {
+                return res.status(400).json({ message: 'Email is already taken' });
+            }
         }
 
-        // Update user data
-        users[userIndex] = {
-            ...users[userIndex],
-            name,
-            email,
-            updatedAt: new Date().toISOString()
-        };
+        // Update user profile in database
+        const result = await executeQuery(
+            `UPDATE users 
+             SET name = ?, 
+                 email = ?, 
+                 shippingAddress = ?, 
+                 billingAddress = ?
+             WHERE id = ?`,
+            [
+                name,
+                email,
+                JSON.stringify(shippingAddress || {}),
+                JSON.stringify(billingAddress || {}),
+                session.user.id
+            ]
+        );
 
-        // Write updated data back to file
-        await writeJsonFile('users.json', { users, lastId: users.length });
+        if (!result.success) {
+            throw new Error('Failed to update profile');
+        }
+
+        // Get updated user data
+        const userResult = await executeQuery(
+            'SELECT id, name, email, role, shippingAddress, billingAddress FROM users WHERE id = ?',
+            [session.user.id]
+        );
+
+        if (!userResult.success || !userResult.data[0]) {
+            throw new Error('Failed to fetch updated user data');
+        }
+
+        const updatedUser = userResult.data[0];
 
         res.status(200).json({
             message: 'Profile updated successfully',
             user: {
-                id: users[userIndex].id,
-                name: users[userIndex].name,
-                email: users[userIndex].email,
-                role: users[userIndex].role
+                ...updatedUser,
+                shippingAddress: JSON.parse(updatedUser.shippingAddress || '{}'),
+                billingAddress: JSON.parse(updatedUser.billingAddress || '{}')
             }
         });
     } catch (error) {
-        console.error('Error updating profile:', error);
-        res.status(500).json({ message: 'Error updating profile' });
+        console.error('Update profile error:', error);
+        res.status(500).json({ 
+            message: 'Failed to update profile',
+            error: error.message
+        });
     }
 } 

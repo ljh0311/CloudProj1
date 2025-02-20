@@ -1,30 +1,36 @@
 const bcrypt = require('bcryptjs');
-const { readJsonFile, writeJsonFile } = require('../utils/jsonOperations');
+const { executeQuery } = require('../lib/mysql');
 
 async function hashPasswords() {
     try {
-        console.log('Reading users.json...');
-        const { users } = await readJsonFile('users.json');
+        // Get all users
+        const result = await executeQuery('SELECT id, password FROM users');
+        if (!result.success) {
+            throw new Error('Failed to fetch users');
+        }
 
-        console.log('Hashing passwords...');
-        const updatedUsers = await Promise.all(users.map(async (user) => {
-            // Only hash if password isn't already hashed (bcrypt passwords start with $2a$ or $2b$)
+        const users = result.data;
+        console.log(`Found ${users.length} users to process`);
+
+        // Update each user's password if not already hashed
+        for (const user of users) {
             if (!user.password.startsWith('$2')) {
                 const hashedPassword = await bcrypt.hash(user.password, 12);
-                return { ...user, password: hashedPassword };
+                const updateResult = await executeQuery(
+                    'UPDATE users SET password = ? WHERE id = ?',
+                    [hashedPassword, user.id]
+                );
+
+                if (!updateResult.success) {
+                    console.error(`Failed to update password for user ${user.id}`);
+                    continue;
+                }
+
+                console.log(`Updated password for user ${user.id}`);
             }
-            return user;
-        }));
+        }
 
-        const updatedData = {
-            users: updatedUsers,
-            lastId: users.length
-        };
-
-        console.log('Writing updated users back to file...');
-        await writeJsonFile('users.json', updatedData);
-
-        console.log('✅ Password hashing complete!');
+        console.log('Password hashing completed successfully');
     } catch (error) {
         console.error('Error hashing passwords:', error);
         process.exit(1);
@@ -33,35 +39,55 @@ async function hashPasswords() {
 
 async function resetAdminPassword() {
     try {
-        console.log('Reading users.json...');
-        const { users } = await readJsonFile('users.json');
+        console.log('Resetting admin password...');
+        const adminEmail = 'admin@kappy.com';
+        
+        // Hash the new password
+        const hashedPassword = await bcrypt.hash('admin123', 12);
+        
+        // Update admin password in database
+        const result = await executeQuery(
+            'UPDATE users SET password = ? WHERE email = ? AND role = ?',
+            [hashedPassword, adminEmail, 'admin']
+        );
 
-        console.log('Updating admin password...');
-        const updatedUsers = users.map(async (user) => {
-            if (user.email === 'admin@kappy.com') {
-                // Set admin password to 'admin123'
-                const hashedPassword = await bcrypt.hash('admin123', 12);
-                return { ...user, password: hashedPassword };
+        if (!result.success) {
+            throw new Error('Failed to update admin password');
+        }
+
+        if (result.data.affectedRows === 0) {
+            // Admin user doesn't exist, create it
+            const createResult = await executeQuery(
+                'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
+                ['Admin', adminEmail, hashedPassword, 'admin']
+            );
+
+            if (!createResult.success) {
+                throw new Error('Failed to create admin user');
             }
-            return user;
-        });
 
-        const resolvedUsers = await Promise.all(updatedUsers);
-
-        const updatedData = {
-            users: resolvedUsers,
-            lastId: users.length
-        };
-
-        console.log('Writing updated users back to file...');
-        await writeJsonFile('users.json', updatedData);
-
-        console.log('✅ Admin password reset complete!');
+            console.log('Admin user created with default password');
+        } else {
+            console.log('Admin password reset successfully');
+        }
     } catch (error) {
         console.error('Error resetting admin password:', error);
         process.exit(1);
     }
 }
 
-hashPasswords();
-resetAdminPassword(); 
+// Run both operations
+async function main() {
+    await hashPasswords();
+    await resetAdminPassword();
+}
+
+main()
+    .then(() => {
+        console.log('All password operations completed successfully');
+        process.exit(0);
+    })
+    .catch(error => {
+        console.error('Script failed:', error);
+        process.exit(1);
+    }); 

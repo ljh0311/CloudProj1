@@ -1,9 +1,9 @@
 import { getSession } from 'next-auth/react';
+import { readJsonFile, writeJsonFile } from '../../../utils/jsonOperations';
 import bcrypt from 'bcryptjs';
-import { executeQuery } from '../../../lib/mysql';
 
 export default async function handler(req, res) {
-    if (req.method !== 'POST') {
+    if (req.method !== 'PUT') {
         return res.status(405).json({ message: 'Method not allowed' });
     }
 
@@ -14,25 +14,21 @@ export default async function handler(req, res) {
         }
 
         const { currentPassword, newPassword } = req.body;
-
         if (!currentPassword || !newPassword) {
             return res.status(400).json({ message: 'Missing required fields' });
         }
 
-        // Get user from database
-        const result = await executeQuery(
-            'SELECT * FROM users WHERE id = ?',
-            [session.user.id]
-        );
+        // Read current users data
+        const { users } = await readJsonFile('users.json');
 
-        if (!result.success || !result.data[0]) {
-            throw new Error('User not found');
+        // Find user
+        const userIndex = users.findIndex(u => u.id === session.user.id);
+        if (userIndex === -1) {
+            return res.status(404).json({ message: 'User not found' });
         }
 
-        const user = result.data[0];
-
         // Verify current password
-        const isValid = await bcrypt.compare(currentPassword, user.password);
+        const isValid = await bcrypt.compare(currentPassword, users[userIndex].password);
         if (!isValid) {
             return res.status(400).json({ message: 'Current password is incorrect' });
         }
@@ -40,22 +36,19 @@ export default async function handler(req, res) {
         // Hash new password
         const hashedPassword = await bcrypt.hash(newPassword, 12);
 
-        // Update password in database
-        const updateResult = await executeQuery(
-            'UPDATE users SET password = ? WHERE id = ?',
-            [hashedPassword, session.user.id]
-        );
+        // Update user data
+        users[userIndex] = {
+            ...users[userIndex],
+            password: hashedPassword,
+            updatedAt: new Date().toISOString()
+        };
 
-        if (!updateResult.success) {
-            throw new Error('Failed to update password');
-        }
+        // Write updated data back to file
+        await writeJsonFile('users.json', { users, lastId: users.length });
 
         res.status(200).json({ message: 'Password updated successfully' });
     } catch (error) {
-        console.error('Change password error:', error);
-        res.status(500).json({ 
-            message: 'Failed to change password',
-            error: error.message
-        });
+        console.error('Error changing password:', error);
+        res.status(500).json({ message: 'Error changing password' });
     }
 } 

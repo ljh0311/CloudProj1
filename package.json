@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "KAPPY - Vintage Streetwear E-commerce Platform",
   "private": true,
-  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -12,10 +11,8 @@
     "lint": "next lint",
     "format": "prettier --write .",
     "prepare": "husky install",
-    "init-db": "node --experimental-json-modules -r dotenv/config scripts/init-db.js",
-    "setup-db": "node --experimental-json-modules -r dotenv/config scripts/setup-db-permissions.js",
-    "check-rds": "node --experimental-json-modules -r dotenv/config scripts/check-rds.js",
-    "verify-db": "node --experimental-json-modules -r dotenv/config scripts/verify-db-setup.js"
+    "init-db": "node -r dotenv/config scripts/init-db.js",
+    "setup-db": "node -r dotenv/config scripts/setup-db-permissions.js"
   },
   "dependencies": {
     "@chakra-ui/icons": "^2.2.4",

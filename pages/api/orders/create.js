@@ -1,44 +1,45 @@
-import { getSession } from 'next-auth/react';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '../auth/[...nextauth]';
 import { createOrder } from '../../../lib/db-service';
-import { pool } from '../../../lib/mysql';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ message: 'Method not allowed' });
     }
 
     try {
-        // Get user session
-        const session = await getSession({ req });
+        const session = await getServerSession(req, res, authOptions);
+        
         if (!session) {
-            return res.status(401).json({ error: 'Not authenticated' });
+            return res.status(401).json({ message: 'Not authenticated' });
         }
 
-        console.log('Processing order for user:', {
+        console.log('Session data:', { 
             userId: session.user.id,
-            email: session.user.email
+            userEmail: session.user.email 
         });
 
-        const { items, totalAmount, paymentStatus, cardType } = req.body;
+        const { items, totalAmount, paymentStatus } = req.body;
+        console.log('Order request data:', { 
+            itemsCount: items?.length,
+            totalAmount,
+            paymentStatus
+        });
 
-        // Validate required fields
-        if (!items || !Array.isArray(items) || items.length === 0) {
-            return res.status(400).json({ error: 'Invalid items data' });
-        }
-
-        if (!totalAmount || typeof totalAmount !== 'number') {
-            return res.status(400).json({ error: 'Invalid total amount' });
+        if (!items || !totalAmount) {
+            return res.status(400).json({ message: 'Missing required fields' });
         }
 
         // Calculate order details
         const subtotal = totalAmount;
-        const tax = totalAmount * 0.07; // 7% tax
-        const shipping = totalAmount > 100 ? 0 : 10; // Free shipping over $100
+        const tax = subtotal * 0.07; // 7% tax
+        const shipping = 5.99; // Fixed shipping cost
         const total = subtotal + tax + shipping;
 
-        // Prepare order data
+        // Create order in database
         const orderData = {
             userId: session.user.id,
+            orderNumber: `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
             items: items.map(item => ({
                 productId: item.id,
                 name: item.name,
@@ -51,37 +52,28 @@ export default async function handler(req, res) {
             tax,
             shipping,
             total,
+            status: 'processing',
+            shippingAddress: {}, // Add proper shipping address handling
+            billingAddress: {}, // Add proper billing address handling
             paymentMethod: {
-                type: cardType,
+                type: 'card',
                 status: paymentStatus
             },
-            shippingAddress: session.user.shippingAddress || {},
-            billingAddress: session.user.billingAddress || {}
+            notes: ''
         };
 
         console.log('Creating order with data:', {
-            userId: session.user.id,
-            itemCount: items.length,
-            total
+            orderNumber: orderData.orderNumber,
+            userId: orderData.userId,
+            total: orderData.total,
+            itemsCount: orderData.items.length
         });
 
-        // Create order in database
         const result = await createOrder(orderData);
 
         if (!result.success) {
-            console.error('Order creation failed:', result.error);
+            console.error('Failed to create order:', result.error);
             throw new Error(result.error || 'Failed to create order');
-        }
-
-        // Update user's orders array
-        try {
-            await pool.execute(
-                'UPDATE users SET orders = JSON_ARRAY_APPEND(orders, "$", ?) WHERE id = ?',
-                [result.data.orderNumber, session.user.id]
-            );
-        } catch (error) {
-            console.error('Failed to update user orders array:', error);
-            // Don't fail the request if this update fails
         }
 
         console.log('Order created successfully:', {
@@ -89,23 +81,16 @@ export default async function handler(req, res) {
             orderNumber: result.data.orderNumber
         });
 
-        // Return success response
         res.status(201).json({
-            success: true,
             message: 'Order created successfully',
-            order: {
-                id: result.data.id,
-                orderNumber: result.data.orderNumber,
-                total: result.data.total,
-                status: result.data.status
-            }
+            orderId: result.data.id,
+            orderNumber: result.data.orderNumber
         });
     } catch (error) {
-        console.error('Order creation error:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Failed to create order',
-            details: error.message
+        console.error('Error in order creation:', error);
+        res.status(500).json({ 
+            message: 'Error creating order',
+            error: error.message 
         });
     }
 } 

@@ -1,6 +1,6 @@
 import { getSession } from 'next-auth/react';
 import { createOrder } from '../../../lib/db-service';
-import { pool } from '../../../lib/db-service';
+import { pool } from '../../../lib/mysql';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {

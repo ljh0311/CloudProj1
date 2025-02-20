@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]';
-import { readJsonFile, writeJsonFile } from '../../../utils/jsonOperations';
+import { createOrder } from '../../../lib/db-service';
+import { v4 as uuidv4 } from 'uuid';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -8,7 +9,6 @@ export default async function handler(req, res) {
     }
 
     try {
-        // Get session using getServerSession instead of getSession
         const session = await getServerSession(req, res, authOptions);
         
         if (!session) {
@@ -21,78 +21,48 @@ export default async function handler(req, res) {
             return res.status(400).json({ message: 'Missing required fields' });
         }
 
-        // Read current orders
-        const ordersData = await readJsonFile('orders.json');
-        const { orders = [], lastId = 0 } = ordersData;
+        // Calculate order details
+        const subtotal = totalAmount;
+        const tax = subtotal * 0.07; // 7% tax
+        const shipping = 5.99; // Fixed shipping cost
+        const total = subtotal + tax + shipping;
 
-        // Create new order
-        const newOrder = {
-            id: lastId + 1,
+        // Create order in database
+        const orderData = {
             userId: session.user.id,
+            orderNumber: `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
             items: items.map(item => ({
-                productId: item.product_id,
+                productId: item.id,
                 name: item.name,
                 price: item.price,
                 quantity: item.quantity,
                 size: item.size,
                 image: item.image
             })),
-            totalAmount,
+            subtotal,
+            tax,
+            shipping,
+            total,
             status: 'processing',
-            paymentStatus: paymentStatus || 'pending',
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
+            shippingAddress: {}, // Add proper shipping address handling
+            billingAddress: {}, // Add proper billing address handling
+            paymentMethod: {
+                type: 'card',
+                status: paymentStatus
+            },
+            notes: ''
         };
 
-        // Add order to orders array
-        orders.push(newOrder);
+        const result = await createOrder(orderData);
 
-        // Update orders.json
-        await writeJsonFile('orders.json', {
-            orders,
-            lastId: newOrder.id
-        });
-
-        // Update product stock levels
-        const productsData = await readJsonFile('products.json');
-        const updatedProducts = productsData.products.map(product => {
-            const orderedItem = items.find(item => item.product_id === product.id);
-            if (orderedItem) {
-                const stockField = `size_${orderedItem.size.toLowerCase()}_stock`;
-                return {
-                    ...product,
-                    [stockField]: Math.max(0, product[stockField] - orderedItem.quantity)
-                };
-            }
-            return product;
-        });
-
-        // Save updated product data
-        await writeJsonFile('products.json', {
-            products: updatedProducts,
-            lastId: productsData.lastId
-        });
-
-        // Clear user's cart
-        const usersData = await readJsonFile('users.json');
-        const updatedUsers = usersData.users.map(user => {
-            if (user.id === session.user.id) {
-                return {
-                    ...user,
-                    cart: []
-                };
-            }
-            return user;
-        });
-
-        await writeJsonFile('users.json', {
-            users: updatedUsers,
-            lastId: usersData.lastId
-        });
+        if (!result.success) {
+            throw new Error(result.error || 'Failed to create order');
+        }
 
         res.status(201).json({
             message: 'Order created successfully',
-            orderId: newOrder.id
+            orderId: result.data.id,
+            orderNumber: result.data.orderNumber
         });
     } catch (error) {
         console.error('Error creating order:', error);

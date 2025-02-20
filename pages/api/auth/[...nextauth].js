@@ -15,15 +15,17 @@ export const authOptions = {
             async authorize(credentials) {
                 try {
                     if (!credentials?.email || !credentials?.password) {
+                        console.error('Missing credentials');
                         throw new Error('Please enter both email and password');
                     }
 
                     console.log('Attempting to authenticate user:', credentials.email);
                     const result = await getUserByEmail(credentials.email);
+                    console.log('getUserByEmail result:', result);
                     
                     if (!result.success) {
                         console.error('Error during authentication:', result.error);
-                        throw new Error('Authentication failed');
+                        throw new Error(result.error || 'Authentication failed');
                     }
 
                     const user = result.data;
@@ -59,14 +61,20 @@ export const authOptions = {
         updateAge: 24 * 60 * 60, // 24 hours
     },
     callbacks: {
-        async jwt({ token, user }) {
+        async signIn({ user, account, profile, email, credentials }) {
+            console.log('SignIn callback:', { user, account, profile, email, credentials });
+            return true;
+        },
+        async jwt({ token, user, account, profile }) {
+            console.log('JWT callback:', { token, user, account, profile });
             if (user) {
                 token.role = user.role;
                 token.id = user.id;
             }
             return token;
         },
-        async session({ session, token }) {
+        async session({ session, token, user }) {
+            console.log('Session callback:', { session, token, user });
             if (token) {
                 session.user.role = token.role;
                 session.user.id = token.id;
@@ -79,19 +87,16 @@ export const authOptions = {
         error: '/auth'
     },
     secret: process.env.NEXTAUTH_SECRET,
-    debug: process.env.NODE_ENV === 'development',
-    jwt: {
-        secret: process.env.NEXTAUTH_SECRET,
-    },
-    cookies: {
-        sessionToken: {
-            name: process.env.NODE_ENV === 'production' ? '__Secure-next-auth.session-token' : 'next-auth.session-token',
-            options: {
-                httpOnly: true,
-                sameSite: 'lax',
-                path: '/',
-                secure: process.env.NODE_ENV === 'production'
-            }
+    debug: true,
+    logger: {
+        error(code, metadata) {
+            console.error('NextAuth Error:', code, metadata);
+        },
+        warn(code) {
+            console.warn('NextAuth Warning:', code);
+        },
+        debug(code, metadata) {
+            console.log('NextAuth Debug:', code, metadata);
         }
     }
 };

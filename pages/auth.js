@@ -86,7 +86,10 @@ export default function Auth() {
                     redirect: false,
                     email: formData.email,
                     password: formData.password,
+                    callbackUrl: '/'
                 });
+
+                console.log('Sign in result:', signInResult);
 
                 if (signInResult?.error) {
                     throw new Error(signInResult.error);
@@ -95,11 +98,15 @@ export default function Auth() {
                 router.push('/');
             } else {
                 // Handle login
+                console.log('Attempting to sign in with:', formData.email);
                 const result = await signIn('credentials', {
                     redirect: false,
                     email: formData.email,
                     password: formData.password,
+                    callbackUrl: router.query.returnUrl || '/'
                 });
+
+                console.log('Sign in result:', result);
 
                 if (result?.error) {
                     throw new Error(result.error);
@@ -107,7 +114,8 @@ export default function Auth() {
 
                 if (result.ok) {
                     const returnUrl = router.query.returnUrl || '/';
-                    router.push(returnUrl);
+                    console.log('Login successful, redirecting to:', returnUrl);
+                    await router.push(returnUrl);
                 } else {
                     throw new Error('Authentication failed');
                 }

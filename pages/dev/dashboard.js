@@ -31,11 +31,13 @@ import {
     HStack,
     Collapse,
     useDisclosure,
+    Spinner,
 } from '@chakra-ui/react';
 import { useState, useEffect } from 'react';
 import { getSession, signIn } from 'next-auth/react';
 import Head from 'next/head';
 import Navbar from '../../components/Navbar';
+import { getDebugInfo } from '../../lib/mysql';
 
 // Add new component for script execution
 const ScriptRunner = () => {
@@ -284,6 +286,97 @@ const ScriptRunner = () => {
                     </VStack>
                 </Box>
             ))}
+        </VStack>
+    );
+};
+
+// Add this component before the ScriptRunner component
+const DatabaseDebugger = () => {
+    const [debugInfo, setDebugInfo] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const toast = useToast();
+
+    useEffect(() => {
+        fetchDebugInfo();
+    }, []);
+
+    const fetchDebugInfo = async () => {
+        try {
+            const response = await fetch('/api/dev/debug-info');
+            const data = await response.json();
+            setDebugInfo(data);
+        } catch (error) {
+            toast({
+                title: 'Error fetching debug info',
+                description: error.message,
+                status: 'error',
+                duration: 5000,
+                isClosable: true,
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    if (isLoading) {
+        return <Spinner />;
+    }
+
+    return (
+        <VStack spacing={4} align="stretch">
+            <Box
+                p={4}
+                borderWidth="1px"
+                borderRadius="lg"
+                bg="gray.700"
+                _hover={{ borderColor: 'blue.400' }}
+            >
+                <VStack align="stretch" spacing={3}>
+                    <Heading size="md" color="white">Database Configuration</Heading>
+                    <HStack>
+                        <Badge colorScheme={debugInfo?.connected ? 'green' : 'red'}>
+                            {debugInfo?.connected ? 'Connected' : 'Disconnected'}
+                        </Badge>
+                        <Badge colorScheme="blue">
+                            {debugInfo?.database || 'Unknown Database'}
+                        </Badge>
+                    </HStack>
+                    
+                    <Box>
+                        <Text color="gray.300" fontSize="sm">Host:</Text>
+                        <Code>{debugInfo?.host || 'Not configured'}</Code>
+                    </Box>
+                    
+                    <Box>
+                        <Text color="gray.300" fontSize="sm">User:</Text>
+                        <Code>{debugInfo?.user || 'Not configured'}</Code>
+                    </Box>
+                    
+                    <Box>
+                        <Text color="gray.300" fontSize="sm">Connection Pool:</Text>
+                        <HStack>
+                            <Badge colorScheme="purple">
+                                Limit: {debugInfo?.connectionLimit || 'N/A'}
+                            </Badge>
+                            <Badge colorScheme="orange">
+                                Queue: {debugInfo?.queueLimit || 'N/A'}
+                            </Badge>
+                        </HStack>
+                    </Box>
+
+                    {debugInfo?.error && (
+                        <Alert status="error">
+                            <AlertIcon />
+                            <Box>
+                                <AlertTitle>Connection Error</AlertTitle>
+                                <AlertDescription>
+                                    {debugInfo.error}
+                                </AlertDescription>
+                            </Box>
+                        </Alert>
+                    )}
+                </VStack>
+            </Box>
         </VStack>
     );
 };
@@ -602,6 +695,7 @@ export default function DevDashboard() {
                                 <Tab color="white" _selected={{ color: "blue.500", bg: "white" }}>Differences</Tab>
                                 <Tab color="white" _selected={{ color: "blue.500", bg: "white" }}>Auth Testing</Tab>
                                 <Tab color="white" _selected={{ color: "blue.500", bg: "white" }}>Scripts</Tab>
+                                <Tab color="white" _selected={{ color: "blue.500", bg: "white" }}>Database Debug</Tab>
                             </TabList>
 
                             <TabPanels bg="white" borderRadius="lg" mt={4}>
@@ -683,6 +777,10 @@ export default function DevDashboard() {
 
                                 <TabPanel>
                                     <ScriptRunner />
+                                </TabPanel>
+
+                                <TabPanel>
+                                    <DatabaseDebugger />
                                 </TabPanel>
                             </TabPanels>
                         </Tabs>

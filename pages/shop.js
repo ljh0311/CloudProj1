@@ -381,15 +381,29 @@ export default function Shop() {
         const fetchProducts = async () => {
             try {
                 setLoading(true);
-                const response = await fetch('/api/products');
+                const response = await fetch('/api/products', {
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include'
+                });
+                
                 if (!response.ok) {
-                    throw new Error('Failed to fetch products');
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || 'Failed to fetch products');
                 }
+                
                 const data = await response.json();
+                if (!data.products) {
+                    throw new Error('Invalid response format');
+                }
+                
                 setProducts(data.products);
+                setError(null);
             } catch (error) {
                 console.error('Error fetching products:', error);
                 setError(error.message);
+                setProducts([]);
             } finally {
                 setLoading(false);
             }

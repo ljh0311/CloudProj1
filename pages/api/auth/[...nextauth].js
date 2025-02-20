@@ -6,6 +6,7 @@ import { getUserByEmail } from '../../../lib/db-service';
 export const authOptions = {
     providers: [
         CredentialsProvider({
+            id: 'credentials',
             name: 'Credentials',
             credentials: {
                 email: { label: "Email", type: "email" },
@@ -13,25 +14,29 @@ export const authOptions = {
             },
             async authorize(credentials) {
                 try {
+                    if (!credentials?.email || !credentials?.password) {
+                        throw new Error('Please enter both email and password');
+                    }
+
                     console.log('Attempting to authenticate user:', credentials.email);
                     const result = await getUserByEmail(credentials.email);
                     
                     if (!result.success) {
                         console.error('Error during authentication:', result.error);
-                        return null;
+                        throw new Error('Authentication failed');
                     }
 
                     const user = result.data;
                     if (!user) {
                         console.log('No user found with email:', credentials.email);
-                        return null;
+                        throw new Error('No user found with this email');
                     }
 
                     console.log('Comparing passwords for user:', credentials.email);
                     const isValid = await bcrypt.compare(credentials.password, user.password);
                     if (!isValid) {
                         console.log('Invalid password for user:', credentials.email);
-                        return null;
+                        throw new Error('Invalid password');
                     }
 
                     console.log('Authentication successful for user:', credentials.email);
@@ -43,11 +48,16 @@ export const authOptions = {
                     };
                 } catch (error) {
                     console.error('Authentication error:', error);
-                    return null;
+                    throw error;
                 }
             }
         })
     ],
+    session: {
+        strategy: 'jwt',
+        maxAge: 30 * 24 * 60 * 60, // 30 days
+        updateAge: 24 * 60 * 60, // 24 hours
+    },
     callbacks: {
         async jwt({ token, user }) {
             if (user) {
@@ -69,7 +79,21 @@ export const authOptions = {
         error: '/auth'
     },
     secret: process.env.NEXTAUTH_SECRET,
-    debug: true
+    debug: process.env.NODE_ENV === 'development',
+    jwt: {
+        secret: process.env.NEXTAUTH_SECRET,
+    },
+    cookies: {
+        sessionToken: {
+            name: process.env.NODE_ENV === 'production' ? '__Secure-next-auth.session-token' : 'next-auth.session-token',
+            options: {
+                httpOnly: true,
+                sameSite: 'lax',
+                path: '/',
+                secure: process.env.NODE_ENV === 'production'
+            }
+        }
+    }
 };
 
 export default NextAuth(authOptions); 

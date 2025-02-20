@@ -82,11 +82,15 @@ export default function Auth() {
                 }
 
                 // Auto login after successful signup
-                await signIn('credentials', {
+                const signInResult = await signIn('credentials', {
                     redirect: false,
                     email: formData.email,
                     password: formData.password,
                 });
+
+                if (signInResult?.error) {
+                    throw new Error(signInResult.error);
+                }
 
                 router.push('/');
             } else {
@@ -97,19 +101,24 @@ export default function Auth() {
                     password: formData.password,
                 });
 
-                if (result.error) {
-                    throw new Error('Invalid email or password');
+                if (result?.error) {
+                    throw new Error(result.error);
                 }
 
-                const returnUrl = router.query.returnUrl || '/';
-                router.push(returnUrl);
+                if (result.ok) {
+                    const returnUrl = router.query.returnUrl || '/';
+                    router.push(returnUrl);
+                } else {
+                    throw new Error('Authentication failed');
+                }
             }
         } catch (error) {
+            console.error('Authentication error:', error);
             toast({
                 title: 'Error',
-                description: error.message,
+                description: error.message || 'Authentication failed',
                 status: 'error',
-                duration: 3000,
+                duration: 5000,
                 isClosable: true,
             });
         } finally {

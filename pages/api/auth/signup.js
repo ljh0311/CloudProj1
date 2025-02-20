@@ -1,50 +1,43 @@
 import bcrypt from 'bcryptjs';
-import { getUserByEmail, createUser } from '../../../lib/mysql';
+import { getUserByEmail, createUser } from '../../../lib/db-service';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
-        return res.status(405).json({ message: 'Method not allowed' });
+        res.setHeader('Allow', ['POST']);
+        return res.status(405).end(`Method ${req.method} Not Allowed`);
     }
 
     try {
         const { name, email, password } = req.body;
 
-        // Validate input
         if (!name || !email || !password) {
-            return res.status(400).json({ message: 'Missing required fields' });
+            return res.status(400).json({ error: 'Missing required fields' });
         }
 
-        if (password.length < 6) {
-            return res.status(400).json({ message: 'Password must be at least 6 characters' });
-        }
-
-        // Check if user exists
+        // Check if user already exists
         const existingUser = await getUserByEmail(email);
-        if (existingUser) {
-            return res.status(400).json({ message: 'Email already registered' });
+        if (existingUser.success && existingUser.data) {
+            return res.status(400).json({ error: 'Email already registered' });
         }
 
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 12);
 
-        // Create new user
-        const userId = await createUser({
+        // Create user
+        const result = await createUser({
             name,
-            email: email.toLowerCase(),
+            email,
             password: hashedPassword,
             role: 'customer'
         });
 
-        // Return success without password
-        res.status(201).json({
-            id: userId,
-            name,
-            email: email.toLowerCase(),
-            role: 'customer'
-        });
+        if (!result.success) {
+            throw new Error(result.error);
+        }
 
+        res.status(201).json({ message: 'User created successfully' });
     } catch (error) {
         console.error('Signup error:', error);
-        res.status(500).json({ message: 'Error creating user' });
+        res.status(500).json({ error: 'Failed to create user' });
     }
 } 

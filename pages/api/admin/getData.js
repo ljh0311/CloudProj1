@@ -1,37 +1,30 @@
 import { getSession } from 'next-auth/react';
-import { getProducts, getUsers, getOrders } from '../../../lib/mysql';
+import { getProducts, getUsers, getOrders } from '../../../lib/db-service';
 
 export default async function handler(req, res) {
-    // Check if user is authenticated and is admin
-    const session = await getSession({ req });
-    if (!session || session.user.role !== 'admin') {
-        return res.status(401).json({ message: 'Unauthorized' });
+    if (req.method !== 'GET') {
+        res.setHeader('Allow', ['GET']);
+        return res.status(405).end(`Method ${req.method} Not Allowed`);
     }
 
-    const { type } = req.query;
-
     try {
-        switch (type) {
-            case 'products':
-                const products = await getProducts();
-                res.status(200).json({ products });
-                break;
+        const [productsResult, usersResult, ordersResult] = await Promise.all([
+            getProducts(),
+            getUsers(),
+            getOrders()
+        ]);
 
-            case 'users':
-                const users = await getUsers();
-                res.status(200).json({ users });
-                break;
-
-            case 'orders':
-                const orders = await getOrders();
-                res.status(200).json({ orders });
-                break;
-
-            default:
-                res.status(400).json({ message: 'Invalid data type requested' });
+        if (!productsResult.success || !usersResult.success || !ordersResult.success) {
+            throw new Error('Failed to fetch data');
         }
+
+        res.status(200).json({
+            products: productsResult.data,
+            users: usersResult.data,
+            orders: ordersResult.data
+        });
     } catch (error) {
-        console.error(`Error fetching ${type}:`, error);
-        res.status(500).json({ message: `Error fetching ${type}` });
+        console.error('Error in getData:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 } 

@@ -17,6 +17,40 @@ const nextConfig = {
     // Server configuration should be set through environment variables
     // PORT=3000 in .env file
     // The host binding is handled by Next.js automatically in production
+    webpack: (config, { isServer }) => {
+        if (!isServer) {
+            // Don't resolve 'fs' module on the client to prevent this error on build --> Error: Can't resolve 'fs'
+            config.resolve.fallback = {
+                fs: false,
+                net: false,
+                tls: false,
+                crypto: false
+            };
+        }
+        return config;
+    },
+    // Add headers for security
+    async headers() {
+        return [
+            {
+                source: '/:path*',
+                headers: [
+                    {
+                        key: 'X-Frame-Options',
+                        value: 'DENY',
+                    },
+                    {
+                        key: 'X-Content-Type-Options',
+                        value: 'nosniff',
+                    },
+                    {
+                        key: 'X-XSS-Protection',
+                        value: '1; mode=block',
+                    },
+                ],
+            },
+        ];
+    },
 }
 
 module.exports = nextConfig 

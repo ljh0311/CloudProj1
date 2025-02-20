@@ -2,6 +2,7 @@ import mysql from 'mysql2/promise';
 import fs from 'fs/promises';
 import path from 'path';
 import dotenv from 'dotenv';
+import bcrypt from 'bcryptjs';
 
 // Load environment variables
 dotenv.config({ path: '.env.local' });
@@ -13,7 +14,10 @@ const dbConfig = {
     database: process.env.MYSQL_DATABASE,
     waitForConnections: true,
     connectionLimit: 10,
-    queueLimit: 0
+    queueLimit: 0,
+    ssl: process.env.NODE_ENV === 'production' ? {
+        rejectUnauthorized: false
+    } : false
 };
 
 async function readJsonFile(type) {
@@ -28,6 +32,13 @@ async function readJsonFile(type) {
 }
 
 async function initializeDatabase() {
+    console.log('Starting database initialization...');
+    console.log('Database config:', {
+        host: dbConfig.host,
+        user: dbConfig.user,
+        database: dbConfig.database
+    });
+
     const connection = await mysql.createConnection(dbConfig);
     
     try {
@@ -37,7 +48,7 @@ async function initializeDatabase() {
         await connection.execute('DROP TABLE IF EXISTS products');
         await connection.execute('DROP TABLE IF EXISTS users');
 
-        // Create users table
+        // Create users table with updated schema
         console.log('Creating users table...');
         await connection.execute(`
             CREATE TABLE users (
@@ -46,12 +57,18 @@ async function initializeDatabase() {
                 email VARCHAR(255) UNIQUE NOT NULL,
                 password VARCHAR(255) NOT NULL,
                 role ENUM('admin', 'customer') DEFAULT 'customer',
+                shippingAddress JSON,
+                billingAddress JSON,
                 createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                lastLogin TIMESTAMP NULL,
+                isActive BOOLEAN DEFAULT TRUE,
+                INDEX idx_email (email),
+                INDEX idx_role (role)
             )
         `);
 
-        // Create products table
+        // Create products table with updated schema
         console.log('Creating products table...');
         await connection.execute(`
             CREATE TABLE products (
@@ -65,18 +82,22 @@ async function initializeDatabase() {
                 size_s_stock INT DEFAULT 0,
                 size_m_stock INT DEFAULT 0,
                 size_l_stock INT DEFAULT 0,
+                totalSales INT DEFAULT 0,
+                isActive BOOLEAN DEFAULT TRUE,
                 createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+                updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_category (category),
+                INDEX idx_price (price)
             )
         `);
 
-        // Create orders table
+        // Create orders table with updated schema
         console.log('Creating orders table...');
         await connection.execute(`
             CREATE TABLE orders (
                 id INT PRIMARY KEY AUTO_INCREMENT,
                 userId INT NOT NULL,
-                orderNumber VARCHAR(20) UNIQUE NOT NULL,
+                orderNumber VARCHAR(50) UNIQUE NOT NULL,
                 items JSON NOT NULL,
                 subtotal DECIMAL(10,2) NOT NULL,
                 tax DECIMAL(10,2) NOT NULL,
@@ -89,24 +110,32 @@ async function initializeDatabase() {
                 notes TEXT,
                 createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                FOREIGN KEY (userId) REFERENCES users(id)
+                FOREIGN KEY (userId) REFERENCES users(id),
+                INDEX idx_user (userId),
+                INDEX idx_status (status),
+                INDEX idx_orderNumber (orderNumber)
             )
         `);
 
-        // Load data from JSON files
+        // Load and insert initial data
         console.log('Loading data from JSON files...');
         const usersData = await readJsonFile('users');
         const productsData = await readJsonFile('products');
-        const ordersData = await readJsonFile('orders');
 
         if (usersData && usersData.users) {
             console.log('Inserting users...');
             for (const user of usersData.users) {
+                // Hash password if not already hashed
+                const hashedPassword = user.password.startsWith('$2') 
+                    ? user.password 
+                    : await bcrypt.hash(user.password, 12);
+
                 await connection.execute(
                     'INSERT INTO users (id, name, email, password, role) VALUES (?, ?, ?, ?, ?)',
-                    [user.id, user.name, user.email, user.password, user.role]
+                    [user.id, user.name, user.email, hashedPassword, user.role]
                 );
             }
+            console.log(`Inserted ${usersData.users.length} users`);
         }
 
         if (productsData && productsData.products) {
@@ -120,30 +149,27 @@ async function initializeDatabase() {
                     [
                         product.id, product.name, product.price, product.category,
                         product.image, product.material, product.description,
-                        product.size_s_stock || 0, product.size_m_stock || 0, product.size_l_stock || 0
+                        product.size_s_stock || 20, product.size_m_stock || 20, product.size_l_stock || 20
                     ]
                 );
             }
+            console.log(`Inserted ${productsData.products.length} products`);
         }
 
-        if (ordersData && ordersData.orders) {
-            console.log('Inserting orders...');
-            for (const order of ordersData.orders) {
-                await connection.execute(
-                    `INSERT INTO orders (
-                        id, userId, orderNumber, items, subtotal, tax, shipping, total,
-                        status, shippingAddress, billingAddress, paymentMethod, notes
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                    [
-                        order.id, order.userId, order.orderNumber, JSON.stringify(order.items),
-                        order.subtotal, order.tax, order.shipping, order.total,
-                        order.status, JSON.stringify(order.shippingAddress),
-                        JSON.stringify(order.billingAddress || order.shippingAddress),
-                        JSON.stringify(order.paymentMethod),
-                        order.notes || ''
-                    ]
-                );
-            }
+        // Create default admin user if not exists
+        const adminEmail = 'admin@kappy.com';
+        const [adminExists] = await connection.execute(
+            'SELECT id FROM users WHERE email = ?',
+            [adminEmail]
+        );
+
+        if (!adminExists.length) {
+            console.log('Creating default admin user...');
+            const adminPassword = await bcrypt.hash('admin123', 12);
+            await connection.execute(
+                'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
+                ['Admin', adminEmail, adminPassword, 'admin']
+            );
         }
 
         console.log('Database initialization completed successfully!');
@@ -157,7 +183,10 @@ async function initializeDatabase() {
 
 // Run the initialization
 initializeDatabase()
-    .then(() => process.exit(0))
+    .then(() => {
+        console.log('Database setup completed successfully');
+        process.exit(0);
+    })
     .catch(error => {
         console.error('Failed to initialize database:', error);
         process.exit(1);

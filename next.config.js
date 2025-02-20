@@ -19,14 +19,15 @@ const nextConfig = {
     // The host binding is handled by Next.js automatically in production
     webpack: (config, { isServer }) => {
         if (!isServer) {
-            // Don't resolve server-side modules on the client
+            // Don't resolve 'mysql2' module on the client side
             config.resolve.fallback = {
-                fs: false,
+                ...config.resolve.fallback,
+                mysql2: false,
+                'mysql2/promise': false,
                 net: false,
                 tls: false,
-                crypto: false,
-                mysql: false,
-                'mysql2/promise': false
+                fs: false,
+                child_process: false
             };
         }
         return config;

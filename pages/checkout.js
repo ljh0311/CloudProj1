@@ -177,26 +177,41 @@ export default function Checkout() {
         setIsProcessing(true);
 
         try {
-            // Simulate payment processing
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            // Calculate order totals
+            const subtotal = getCartTotal();
+            const tax = subtotal * 0.07; // 7% tax
+            const shipping = subtotal > 100 ? 0 : 10; // Free shipping over $100
+            const total = subtotal + tax + shipping;
 
-            // Create order with payment status
+            // Create order
             const response = await fetch('/api/orders/create', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    items: cartItems,
-                    totalAmount: getCartTotal(),
+                    items: cartItems.map(item => ({
+                        productId: item.id,
+                        name: item.name,
+                        price: item.price,
+                        quantity: item.quantity,
+                        size: item.size
+                    })),
+                    totalAmount: total,
                     paymentStatus: 'completed',
                     cardType: cardType.type
                 }),
-                credentials: 'include' // Add this to include cookies
+                credentials: 'include'
             });
 
+            const data = await response.json();
+
             if (!response.ok) {
-                throw new Error('Failed to create order');
+                throw new Error(data.error || 'Failed to create order');
+            }
+
+            if (!data.success) {
+                throw new Error(data.error || 'Order creation failed');
             }
 
             // Clear cart after successful payment
@@ -204,7 +219,7 @@ export default function Checkout() {
 
             toast({
                 title: 'Payment Successful',
-                description: 'Your order has been placed successfully',
+                description: `Order #${data.order.orderNumber} has been placed successfully`,
                 status: 'success',
                 duration: 5000,
                 isClosable: true
@@ -212,9 +227,10 @@ export default function Checkout() {
 
             router.push('/orders');
         } catch (error) {
+            console.error('Payment processing error:', error);
             toast({
                 title: 'Payment Failed',
-                description: error.message,
+                description: error.message || 'Failed to process payment',
                 status: 'error',
                 duration: 5000,
                 isClosable: true

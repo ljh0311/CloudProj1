@@ -1,7 +1,7 @@
-import mysql from 'mysql2/promise';
-import dotenv from 'dotenv';
-import fs from 'fs';
-import path from 'path';
+const mysql = require('mysql2/promise');
+const dotenv = require('dotenv');
+const fs = require('fs');
+const path = require('path');
 
 // Load environment variables from all env files
 function loadEnvFiles() {

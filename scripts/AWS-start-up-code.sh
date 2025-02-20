@@ -16,16 +16,16 @@ echo "Starting setup at $(date)"
 #---------------------------------------------------------
 APP_DIR="/home/ec2-user/app/CloudProj1"
 NODE_ENV="production"
-DB_HOST="database1.czsa24cac7y5.us-east-1.rds.amazonaws.com"
+DB_HOST="https://cloudprojdb.ck5ndmxmjmjr.us-east-1.rds.amazonaws.com"
 DB_USER="admin"
-DB_PASSWORD="KappyAdmin"
+DB_PASSWORD="Kappy2dmiN"
 DB_NAME="kappy_db"
 
 # Get instance metadata
 TOKEN=$(curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
 INSTANCE_ID=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -s http://169.254.169.254/latest/meta-data/instance-id)
-REGION=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -s http://169.254.169.254/latest/meta-data/placement/region)
-PUBLIC_IP=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -s http://169.254.169.254/latest/meta-data/public-ipv4)
+REGION=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -s http://169.254.169.254/latest/meta-data/placement/region || echo "us-east-1")
+PUBLIC_IP=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -s http://169.254.169.254/latest/meta-data/public-ipv4 || echo "54.159.253.0")
 PRIVATE_IP=$(curl -H "X-aws-ec2-metadata-token: $TOKEN" -s http://169.254.169.254/latest/meta-data/local-ipv4)
 
 echo "🚀 Starting server configuration..."

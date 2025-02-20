@@ -26,19 +26,41 @@ echo "🔍 Checking system resources..."
 free -h
 df -h
 
-# Install dependencies
-echo "📦 Installing dependencies..."
-# Temporarily remove husky prepare script
-npm pkg delete scripts.prepare
-# Clean install production dependencies
+# Clear npm cache and remove node_modules
+echo "🧹 Cleaning up..."
+npm cache clean --force
 rm -rf node_modules package-lock.json .next
-export NODE_ENV=production
-export HUSKY=0
-export NODE_OPTIONS="--max-old-space-size=512"
 
-# Install with specific flags for t2.micro
-echo "Installing production dependencies..."
-npm install --omit=dev --no-package-lock --production
+# Create swap space if not exists
+if [ ! -f /swapfile ]; then
+    echo "📝 Creating swap space..."
+    sudo dd if=/dev/zero of=/swapfile bs=128M count=16
+    sudo chmod 600 /swapfile
+    sudo mkswap /swapfile
+    sudo swapon /swapfile
+    echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+fi
+
+# Install dependencies in chunks
+echo "📦 Installing dependencies..."
+export NODE_OPTIONS="--max-old-space-size=512"
+export HUSKY=0
+
+# Install production dependencies in smaller chunks
+echo "Installing core dependencies..."
+npm install --no-package-lock --production next react react-dom
+
+echo "Installing UI dependencies..."
+npm install --no-package-lock --production @chakra-ui/react @emotion/react @emotion/styled framer-motion
+
+echo "Installing authentication dependencies..."
+npm install --no-package-lock --production next-auth bcryptjs
+
+echo "Installing database dependencies..."
+npm install --no-package-lock --production mysql2
+
+echo "Installing utility dependencies..."
+npm install --no-package-lock --production uuid dotenv
 
 # Build application with memory optimization
 echo "🏗️ Building application..."
@@ -55,6 +77,9 @@ pm2 flush
 
 # Start the application with PM2 (single instance for t2.micro)
 echo "🔄 Starting application with PM2..."
+export HOST=0.0.0.0
+export PORT=3000
+pm2 delete all || true
 pm2 start npm --name "kappy" --node-args="--max-old-space-size=512" -- start
 pm2 save
 
@@ -82,9 +107,13 @@ max_attempts=5
 attempt=1
 while [ $attempt -le $max_attempts ]; do
     echo "Health check attempt $attempt of $max_attempts..."
-    if curl -f http://localhost:3000/api/health; then
-        echo "✅ Health check passed!"
-        break
+    response=$(curl -s http://44.201.154.170:3000/api/health)
+    if [ $? -eq 0 ]; then
+        echo "Response: $response"
+        if echo "$response" | grep -q '"status":"healthy"'; then
+            echo "✅ Health check passed!"
+            break
+        fi
     fi
     if [ $attempt -eq $max_attempts ]; then
         echo "❌ Health check failed after $max_attempts attempts"
@@ -92,6 +121,8 @@ while [ $attempt -le $max_attempts ]; do
         pm2 logs --lines 50
         echo "Process status:"
         pm2 describe kappy
+        echo "Network status:"
+        netstat -tulpn | grep 3000
         exit 1
     fi
     echo "Waiting before next attempt..."
@@ -105,15 +136,15 @@ echo """
 Instance Details:
 ----------------
 Instance ID: i-027edf2fe474ed2b2
-Public IP: 54.197.87.44
+Public IP: 44.201.154.170
 Private IP: 172.31.95.243
 Hostname: ip-172-31-95-243.ec2.internal
 
 URLs:
 -----
-Application: http://54.197.87.44:3000
-API: http://54.197.87.44:3000/api
-Health Check: http://54.197.87.44:3000/api/health
+Application: http://44.201.154.170:3000
+API: http://44.201.154.170:3000/api
+Health Check: http://44.201.154.170:3000/api/health
 
 Monitor with:
 ------------

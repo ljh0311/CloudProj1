@@ -18,15 +18,12 @@ export default async function handler(req, res) {
             connectionLimit: 1
         });
 
-        // Try to connect and check users table
+        // Try to connect and check database
         const connection = await pool.getConnection();
         
-        // Check if users table exists and get count
-        const [tables] = await connection.query(`
-            SELECT COUNT(*) as count 
-            FROM users
-        `);
-
+        // Basic database check
+        const [result] = await connection.query('SELECT 1 as value');
+        
         // Release the connection
         connection.release();
         await pool.end();
@@ -34,29 +31,24 @@ export default async function handler(req, res) {
         healthCheck.status = 'healthy';
         healthCheck.database = {
             connected: true,
-            usersCount: tables[0].count
+            check: result[0].value === 1
         };
 
         res.status(200).json(healthCheck);
     } catch (error) {
+        console.error('Health check failed:', error);
+        
         healthCheck.status = 'error';
         healthCheck.database = {
             connected: false,
             error: error.message,
             code: error.code,
-            solution: error.code === 'ER_NO_SUCH_TABLE' ? 
-                'Users table does not exist. Run this SQL:\n' +
-                'CREATE TABLE users (\n' +
-                '  id INT AUTO_INCREMENT PRIMARY KEY,\n' +
-                '  name VARCHAR(255) NOT NULL,\n' +
-                '  email VARCHAR(255) UNIQUE NOT NULL,\n' +
-                '  password VARCHAR(255) NOT NULL,\n' +
-                '  role VARCHAR(50) DEFAULT "customer",\n' +
-                '  createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,\n' +
-                '  updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP\n' +
-                ');' : 'Check your MySQL connection settings'
+            solution: error.code === 'ECONNREFUSED' ? 
+                'Check if database is running and accessible' :
+                'Check database connection settings'
         };
         
-        res.status(500).json(healthCheck);
+        // Still return 200 for health checks, but with error status
+        res.status(200).json(healthCheck);
     }
 } 

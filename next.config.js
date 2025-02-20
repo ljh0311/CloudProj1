@@ -2,14 +2,21 @@
 const nextConfig = {
     reactStrictMode: true,
     swcMinify: true,
+    output: 'standalone',
+    env: {
+        NEXTAUTH_URL: process.env.NEXTAUTH_URL,
+        NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL
+    },
+    experimental: {
+        serverComponentsExternalPackages: ['mysql2']
+    },
     images: {
-        domains: ['54.159.253.0', 'localhost'],
+        domains: ['44.201.154.170', 'localhost'],
         unoptimized: true
     },
-    server: {
-        host: '0.0.0.0',  // Listen on all network interfaces
-        port: 3000
-    }
+    // Server configuration should be set through environment variables
+    // PORT=3000 in .env file
+    // The host binding is handled by Next.js automatically in production
 }
 
 module.exports = nextConfig 

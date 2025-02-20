@@ -1,7 +1,7 @@
 module.exports = {
   apps: [{
     name: 'kappy',
-    script: 'npm',
+    script: './node_modules/next/dist/bin/next',
     args: 'start',
     env: {
       NODE_ENV: 'production',
@@ -19,6 +19,7 @@ module.exports = {
     out_file: 'logs/out.log',
     time: true,
     instances: 1,
+    exec_mode: 'fork',
     autorestart: true,
     watch: false,
     max_restarts: 10,

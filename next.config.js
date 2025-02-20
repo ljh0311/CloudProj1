@@ -4,12 +4,13 @@ const nextConfig = {
     swcMinify: true,
     output: 'standalone',
     env: {
+        MYSQL_HOST: process.env.MYSQL_HOST,
+        MYSQL_USER: process.env.MYSQL_USER,
+        MYSQL_PASSWORD: process.env.MYSQL_PASSWORD,
+        MYSQL_DATABASE: process.env.MYSQL_DATABASE,
         NEXTAUTH_URL: process.env.NEXTAUTH_URL,
-        NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
-        DB_HOST: process.env.DB_HOST,
-        DB_USER: process.env.DB_USER,
-        DB_PASSWORD: process.env.DB_PASSWORD,
-        DB_NAME: process.env.DB_NAME,
+        NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
+        NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL
     },
     experimental: {
         serverComponentsExternalPackages: ['mysql2']

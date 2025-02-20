@@ -3,7 +3,7 @@ import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { getUserByEmail } from '../../../lib/db-service';
 
-export default NextAuth({
+export const authOptions = {
     providers: [
         CredentialsProvider({
             name: 'Credentials',
@@ -65,4 +65,6 @@ export default NextAuth({
     },
     secret: process.env.NEXTAUTH_SECRET,
     debug: process.env.NODE_ENV === 'development'
-}); 
+};
+
+export default NextAuth(authOptions); 

@@ -23,7 +23,13 @@ git pull origin main
 
 # Install dependencies
 echo "📦 Installing dependencies..."
-npm install --production
+# Temporarily remove husky prepare script
+npm pkg delete scripts.prepare
+# Clean install production dependencies
+rm -rf node_modules package-lock.json
+export NODE_ENV=production
+export HUSKY=0
+npm install --omit=dev --no-package-lock
 
 # Build application
 echo "🏗️ Building application..."

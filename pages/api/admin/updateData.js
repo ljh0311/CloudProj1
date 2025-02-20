@@ -1,4 +1,4 @@
-import { writeJsonFile, readJsonFile } from '../../../utils/jsonOperations';
+import { addProduct, updateProduct, deleteProduct } from '../../../lib/db-service';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -6,18 +6,43 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { type, data } = req.body;
+        const { type, action, data } = req.body;
 
-        if (!type || !data) {
-            return res.status(400).json({ message: 'Missing required fields' });
+        if (type === 'products') {
+            let result;
+            
+            switch (action) {
+                case 'add':
+                    result = await addProduct(data);
+                    break;
+                case 'update':
+                    result = await updateProduct(data.id, data);
+                    break;
+                case 'delete':
+                    result = await deleteProduct(data.id);
+                    break;
+                default:
+                    return res.status(400).json({ message: 'Invalid action' });
+            }
+
+            if (!result.success) {
+                throw new Error(result.error);
+            }
+
+            return res.status(200).json({ 
+                success: true, 
+                message: `Product ${action}ed successfully`,
+                data: result.data 
+            });
         }
 
-        const filename = type === 'products' ? 'products.json' : 'users.json';
-        await writeJsonFile(filename, data);
-
-        res.status(200).json({ message: 'Data updated successfully' });
+        return res.status(400).json({ message: 'Invalid data type' });
     } catch (error) {
         console.error('Error updating data:', error);
-        res.status(500).json({ message: 'Error updating data' });
+        res.status(500).json({ 
+            success: false, 
+            message: 'Error updating data', 
+            error: error.message 
+        });
     }
 } 

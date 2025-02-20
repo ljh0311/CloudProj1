@@ -5,7 +5,11 @@ const nextConfig = {
     output: 'standalone',
     env: {
         NEXTAUTH_URL: process.env.NEXTAUTH_URL,
-        NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL
+        NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+        DB_HOST: process.env.DB_HOST,
+        DB_USER: process.env.DB_USER,
+        DB_PASSWORD: process.env.DB_PASSWORD,
+        DB_NAME: process.env.DB_NAME,
     },
     experimental: {
         serverComponentsExternalPackages: ['mysql2']

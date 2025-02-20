@@ -1,7 +1,30 @@
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
-import { getMySQLUserByEmail, getUserByEmailFallback } from '../../../utils/db';
+import mysql from 'mysql2/promise';
+
+const pool = mysql.createPool({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
+});
+
+async function getUserByEmail(email) {
+    try {
+        const [rows] = await pool.execute(
+            'SELECT * FROM users WHERE email = ?',
+            [email]
+        );
+        return rows[0] || null;
+    } catch (error) {
+        console.error('Database error:', error);
+        throw error;
+    }
+}
 
 export const authOptions = {
     providers: [
@@ -13,14 +36,7 @@ export const authOptions = {
             },
             async authorize(credentials, req) {
                 try {
-                    // First try MySQL
-                    let user = await getMySQLUserByEmail(credentials.email);
-                    
-                    // If MySQL fails, fallback to JSON
-                    if (!user) {
-                        console.log('User not found in MySQL, trying JSON fallback...');
-                        user = await getUserByEmailFallback(credentials.email);
-                    }
+                    const user = await getUserByEmail(credentials.email);
 
                     if (!user) {
                         console.log('No user found with email:', credentials.email);
@@ -49,78 +65,31 @@ export const authOptions = {
         })
     ],
     session: {
-        strategy: "jwt",
-        maxAge: 24 * 60 * 60, // 24 hours
-        updateAge: 60 * 60, // 1 hour
-    },
-    jwt: {
-        secret: process.env.NEXTAUTH_SECRET,
-        maxAge: 24 * 60 * 60, // 24 hours
-        encryption: true,
-    },
-    cookies: {
-        sessionToken: {
-            name: `__Secure-next-auth.session-token`,
-            options: {
-                httpOnly: true,
-                sameSite: 'lax',
-                path: '/',
-                secure: true,
-                domain: process.env.NEXTAUTH_URL ? new URL(process.env.NEXTAUTH_URL).hostname : undefined
-            }
-        },
-        callbackUrl: {
-            name: `__Secure-next-auth.callback-url`,
-            options: {
-                httpOnly: true,
-                sameSite: 'lax',
-                path: '/',
-                secure: true
-            }
-        },
-        csrfToken: {
-            name: `__Host-next-auth.csrf-token`,
-            options: {
-                httpOnly: true,
-                sameSite: 'lax',
-                path: '/',
-                secure: true
-            }
-        }
+        strategy: 'jwt',
+        maxAge: 30 * 24 * 60 * 60, // 30 days
     },
     callbacks: {
         async jwt({ token, user }) {
             if (user) {
                 token.role = user.role;
+                token.id = user.id;
             }
             return token;
         },
         async session({ session, token }) {
             if (token) {
                 session.user.role = token.role;
+                session.user.id = token.id;
             }
             return session;
         }
     },
     pages: {
-        signIn: '/auth',
-        error: '/auth',
-        signOut: '/'
+        signIn: '/auth/signin',
+        error: '/auth/error',
     },
-    debug: process.env.NODE_ENV === 'development',
     secret: process.env.NEXTAUTH_SECRET,
-    useSecureCookies: true,
-    events: {
-        async signOut({ session, token }) {
-            // Cleanup any session-related data
-            if (token) {
-                token.exp = 0; // Immediately expire the token
-            }
-        },
-        async error(error) {
-            console.error('NextAuth Error:', error);
-        }
-    }
+    debug: process.env.NODE_ENV === 'development',
 };
 
 export default NextAuth(authOptions); 

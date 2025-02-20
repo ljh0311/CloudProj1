@@ -1,95 +1,153 @@
-import fs from 'fs/promises';
-import path from 'path';
+import { getSession } from 'next-auth/react';
+import mysql from 'mysql2/promise';
+import bcrypt from 'bcryptjs';
 
-// Helper function to read users data
-async function getUsers() {
-    const filePath = path.join(process.cwd(), 'data', 'users.json');
-    const fileData = await fs.readFile(filePath, 'utf8');
-    return JSON.parse(fileData);
-}
-
-// Helper function to write users data
-async function writeUsers(data) {
-    const filePath = path.join(process.cwd(), 'data', 'users.json');
-    await fs.writeFile(filePath, JSON.stringify(data, null, 2));
-}
-
-// TODO: MySQL implementation
-// This will be replaced with MySQL queries when moving to RDS
-async function getMySQLUsers() {
-    // const connection = await mysql.createConnection({
-    //     host: process.env.DB_HOST,
-    //     user: process.env.DB_USER,
-    //     password: process.env.DB_PASSWORD,
-    //     database: process.env.DB_NAME
-    // });
-    // const [rows] = await connection.execute('SELECT * FROM users');
-    // await connection.end();
-    // return rows;
-}
+const pool = mysql.createPool({
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0
+});
 
 export default async function handler(req, res) {
-    // Check if user is admin (implement proper auth check)
-    // if (!isAdmin) {
-    //     return res.status(403).json({ error: 'Unauthorized' });
-    // }
+    const session = await getSession({ req });
 
-    try {
-        switch (req.method) {
-            case 'GET':
-                const data = await getUsers();
-                res.status(200).json(data.users);
-                break;
+    if (!session || session.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Not authorized' });
+    }
 
-            case 'POST':
-                const usersData = await getUsers();
-                const newUser = {
-                    ...req.body,
-                    id: usersData.lastId + 1,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                    orders: [],
-                    cart: []
-                };
-                usersData.users.push(newUser);
-                usersData.lastId = newUser.id;
-                await writeUsers(usersData);
-                res.status(201).json(newUser);
-                break;
+    switch (req.method) {
+        case 'GET':
+            try {
+                const [users] = await pool.execute(
+                    'SELECT id, name, email, role, created_at, updated_at FROM users'
+                );
+                res.status(200).json(users);
+            } catch (error) {
+                console.error('Error fetching users:', error);
+                res.status(500).json({ error: 'Failed to fetch users' });
+            }
+            break;
 
-            case 'PUT':
-                const { id, ...updateData } = req.body;
-                const existingData = await getUsers();
-                const userIndex = existingData.users.findIndex(u => u.id === id);
-                
-                if (userIndex === -1) {
+        case 'POST':
+            try {
+                const { name, email, password, role = 'customer' } = req.body;
+
+                // Check if user already exists
+                const [existingUsers] = await pool.execute(
+                    'SELECT id FROM users WHERE email = ?',
+                    [email]
+                );
+
+                if (existingUsers.length > 0) {
+                    return res.status(400).json({ error: 'Email already exists' });
+                }
+
+                // Hash password
+                const hashedPassword = await bcrypt.hash(password, 10);
+
+                // Create user
+                const [result] = await pool.execute(
+                    'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
+                    [name, email, hashedPassword, role]
+                );
+
+                const [newUser] = await pool.execute(
+                    'SELECT id, name, email, role, created_at, updated_at FROM users WHERE id = ?',
+                    [result.insertId]
+                );
+
+                res.status(201).json(newUser[0]);
+            } catch (error) {
+                console.error('Error creating user:', error);
+                res.status(500).json({ error: 'Failed to create user' });
+            }
+            break;
+
+        case 'PUT':
+            try {
+                const { id } = req.query;
+                const updates = req.body;
+
+                // If password is being updated, hash it
+                if (updates.password) {
+                    updates.password = await bcrypt.hash(updates.password, 10);
+                }
+
+                const fields = Object.keys(updates)
+                    .filter(key => key !== 'id')
+                    .map(key => `${key} = ?`)
+                    .join(', ');
+
+                const values = Object.keys(updates)
+                    .filter(key => key !== 'id')
+                    .map(key => updates[key]);
+
+                const [result] = await pool.execute(
+                    `UPDATE users SET ${fields} WHERE id = ?`,
+                    [...values, id]
+                );
+
+                if (result.affectedRows === 0) {
                     return res.status(404).json({ error: 'User not found' });
                 }
 
-                existingData.users[userIndex] = {
-                    ...existingData.users[userIndex],
-                    ...updateData,
-                    updatedAt: new Date().toISOString()
-                };
+                const [updatedUser] = await pool.execute(
+                    'SELECT id, name, email, role, created_at, updated_at FROM users WHERE id = ?',
+                    [id]
+                );
 
-                await writeUsers(existingData);
-                res.status(200).json(existingData.users[userIndex]);
-                break;
+                res.status(200).json(updatedUser[0]);
+            } catch (error) {
+                console.error('Error updating user:', error);
+                res.status(500).json({ error: 'Failed to update user' });
+            }
+            break;
 
-            case 'DELETE':
-                const { id: deleteId } = req.query;
-                const currentData = await getUsers();
-                currentData.users = currentData.users.filter(u => u.id !== parseInt(deleteId));
-                await writeUsers(currentData);
+        case 'DELETE':
+            try {
+                const { id } = req.query;
+
+                // Check if user exists
+                const [existingUser] = await pool.execute(
+                    'SELECT role FROM users WHERE id = ?',
+                    [id]
+                );
+
+                if (existingUser.length === 0) {
+                    return res.status(404).json({ error: 'User not found' });
+                }
+
+                // Prevent deleting the last admin
+                if (existingUser[0].role === 'admin') {
+                    const [adminCount] = await pool.execute(
+                        'SELECT COUNT(*) as count FROM users WHERE role = "admin"'
+                    );
+                    
+                    if (adminCount[0].count <= 1) {
+                        return res.status(400).json({
+                            error: 'Cannot delete the last admin user'
+                        });
+                    }
+                }
+
+                const [result] = await pool.execute(
+                    'DELETE FROM users WHERE id = ?',
+                    [id]
+                );
+
                 res.status(200).json({ message: 'User deleted successfully' });
-                break;
+            } catch (error) {
+                console.error('Error deleting user:', error);
+                res.status(500).json({ error: 'Failed to delete user' });
+            }
+            break;
 
-            default:
-                res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
-                res.status(405).end(`Method ${req.method} Not Allowed`);
-        }
-    } catch (error) {
-        console.error('Error handling user request:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        default:
+            res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
+            res.status(405).json({ error: `Method ${req.method} not allowed` });
     }
 } 

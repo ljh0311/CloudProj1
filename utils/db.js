@@ -1,9 +1,4 @@
-import fs from 'fs';
-import path from 'path';
 import mysql from 'mysql2/promise';
-
-const productsPath = path.join(process.cwd(), 'data', 'products.json');
-const usersPath = path.join(process.cwd(), 'data', 'users.json');
 
 const pool = mysql.createPool({
     host: process.env.DB_HOST,
@@ -16,193 +11,58 @@ const pool = mysql.createPool({
 });
 
 // Products operations
-export const getProducts = () => {
+export const getProducts = async () => {
     try {
-        const data = fs.readFileSync(productsPath, 'utf8');
-        return JSON.parse(data).products;
+        const [rows] = await pool.execute('SELECT * FROM products');
+        return rows;
     } catch (error) {
-        console.error('Error reading products:', error);
+        console.error('Error fetching products:', error);
         return [];
     }
 };
 
-export const addProduct = (product) => {
+export const getProductById = async (id) => {
     try {
-        const data = fs.readFileSync(productsPath, 'utf8');
-        const { products, lastId } = JSON.parse(data);
-        const newProduct = {
-            ...product,
-            id: lastId + 1,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        };
-        
-        products.push(newProduct);
-        
-        fs.writeFileSync(productsPath, JSON.stringify({
-            products,
-            lastId: lastId + 1
-        }, null, 4));
-        
-        return newProduct;
+        const [rows] = await pool.execute(
+            'SELECT * FROM products WHERE id = ?',
+            [id]
+        );
+        return rows[0] || null;
     } catch (error) {
-        console.error('Error adding product:', error);
-        throw new Error('Failed to add product');
-    }
-};
-
-export const updateProduct = (id, updates) => {
-    try {
-        const data = fs.readFileSync(productsPath, 'utf8');
-        const { products, lastId } = JSON.parse(data);
-        const index = products.findIndex(p => p.id === id);
-        
-        if (index === -1) throw new Error('Product not found');
-        
-        products[index] = {
-            ...products[index],
-            ...updates,
-            updatedAt: new Date().toISOString()
-        };
-        
-        fs.writeFileSync(productsPath, JSON.stringify({ products, lastId }, null, 4));
-        return products[index];
-    } catch (error) {
-        console.error('Error updating product:', error);
-        throw new Error('Failed to update product');
-    }
-};
-
-export const deleteProduct = (id) => {
-    try {
-        const data = fs.readFileSync(productsPath, 'utf8');
-        const { products, lastId } = JSON.parse(data);
-        const index = products.findIndex(p => p.id === id);
-        
-        if (index === -1) throw new Error('Product not found');
-        
-        products.splice(index, 1);
-        fs.writeFileSync(productsPath, JSON.stringify({ products, lastId }, null, 4));
-        return true;
-    } catch (error) {
-        console.error('Error deleting product:', error);
-        throw new Error('Failed to delete product');
-    }
-};
-
-// Users operations
-export const getUsers = () => {
-    try {
-        const data = fs.readFileSync(usersPath, 'utf8');
-        return JSON.parse(data).users;
-    } catch (error) {
-        console.error('Error reading users:', error);
-        return [];
-    }
-};
-
-export const getUserByEmail = (email) => {
-    try {
-        const users = getUsers();
-        return users.find(user => user.email === email);
-    } catch (error) {
-        console.error('Error finding user:', error);
+        console.error('Error fetching product:', error);
         return null;
     }
 };
 
-export const addUser = (user) => {
+export const updateProduct = async (id, data) => {
     try {
-        const data = fs.readFileSync(usersPath, 'utf8');
-        const { users, lastId } = JSON.parse(data);
-        const newUser = {
-            ...user,
-            id: lastId + 1,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            orders: [],
-            cart: []
-        };
-        
-        users.push(newUser);
-        
-        fs.writeFileSync(usersPath, JSON.stringify({
-            users,
-            lastId: lastId + 1
-        }, null, 4));
-        
-        return newUser;
+        const [result] = await pool.execute(
+            `UPDATE products 
+             SET name = ?, price = ?, category = ?, image = ?, 
+                 material = ?, description = ?, 
+                 size_s_stock = ?, size_m_stock = ?, size_l_stock = ?
+             WHERE id = ?`,
+            [
+                data.name,
+                data.price,
+                data.category,
+                data.image,
+                data.material,
+                data.description,
+                data.size_s_stock,
+                data.size_m_stock,
+                data.size_l_stock,
+                id
+            ]
+        );
+        return result.affectedRows > 0;
     } catch (error) {
-        console.error('Error adding user:', error);
-        throw new Error('Failed to add user');
+        console.error('Error updating product:', error);
+        throw error;
     }
 };
 
-export const updateUser = (id, updates) => {
-    try {
-        const data = fs.readFileSync(usersPath, 'utf8');
-        const { users, lastId } = JSON.parse(data);
-        const index = users.findIndex(u => u.id === id);
-        
-        if (index === -1) throw new Error('User not found');
-        
-        users[index] = {
-            ...users[index],
-            ...updates,
-            updatedAt: new Date().toISOString()
-        };
-        
-        fs.writeFileSync(usersPath, JSON.stringify({ users, lastId }, null, 4));
-        return users[index];
-    } catch (error) {
-        console.error('Error updating user:', error);
-        throw new Error('Failed to update user');
-    }
-};
-
-export const updateUserCart = (userId, cart) => {
-    try {
-        const data = fs.readFileSync(usersPath, 'utf8');
-        const { users, lastId } = JSON.parse(data);
-        const index = users.findIndex(u => u.id === userId);
-        
-        if (index === -1) throw new Error('User not found');
-        
-        users[index].cart = cart;
-        users[index].updatedAt = new Date().toISOString();
-        
-        fs.writeFileSync(usersPath, JSON.stringify({ users, lastId }, null, 4));
-        return users[index];
-    } catch (error) {
-        console.error('Error updating user cart:', error);
-        throw new Error('Failed to update user cart');
-    }
-};
-
-export const addOrder = (userId, order) => {
-    try {
-        const data = fs.readFileSync(usersPath, 'utf8');
-        const { users, lastId } = JSON.parse(data);
-        const index = users.findIndex(u => u.id === userId);
-        
-        if (index === -1) throw new Error('User not found');
-        
-        users[index].orders.push({
-            ...order,
-            id: Date.now(),
-            createdAt: new Date().toISOString()
-        });
-        users[index].updatedAt = new Date().toISOString();
-        
-        fs.writeFileSync(usersPath, JSON.stringify({ users, lastId }, null, 4));
-        return users[index].orders[users[index].orders.length - 1];
-    } catch (error) {
-        console.error('Error adding order:', error);
-        throw new Error('Failed to add order');
-    }
-};
-
-// MySQL user operations
+// User operations
 export const getMySQLUserByEmail = async (email) => {
     try {
         const [rows] = await pool.execute(
@@ -230,104 +90,88 @@ export const createMySQLUser = async (userData) => {
     }
 };
 
-// Fallback to JSON if database connection fails
-export const getUserByEmailFallback = (email) => {
+// Orders operations
+export const createOrder = async (orderData) => {
     try {
-        const users = getUsers();
-        return users.find(user => user.email === email);
+        const {
+            userId,
+            orderNumber,
+            items,
+            subtotal,
+            tax,
+            shipping,
+            total,
+            shippingAddress,
+            billingAddress,
+            paymentMethod,
+            notes
+        } = orderData;
+
+        const [result] = await pool.execute(
+            `INSERT INTO orders (
+                user_id, order_number, items, subtotal, tax, 
+                shipping, total, shipping_address, billing_address, 
+                payment_method, notes
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+                userId,
+                orderNumber,
+                JSON.stringify(items),
+                subtotal,
+                tax,
+                shipping,
+                total,
+                JSON.stringify(shippingAddress),
+                JSON.stringify(billingAddress),
+                JSON.stringify(paymentMethod),
+                notes
+            ]
+        );
+        return result.insertId;
     } catch (error) {
-        console.error('Error finding user:', error);
-        return null;
+        console.error('Error creating order:', error);
+        throw error;
     }
 };
 
-export const addUserFallback = (user) => {
+export const getUserOrders = async (userId) => {
     try {
-        const data = fs.readFileSync(usersPath, 'utf8');
-        const { users, lastId } = JSON.parse(data);
-        const newUser = {
-            ...user,
-            id: lastId + 1,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            orders: [],
-            cart: []
-        };
-        
-        users.push(newUser);
-        
-        fs.writeFileSync(usersPath, JSON.stringify({
-            users,
-            lastId: lastId + 1
-        }, null, 4));
-        
-        return newUser;
-    } catch (error) {
-        console.error('Error adding user:', error);
-        throw new Error('Failed to add user');
-    }
-};
-
-export const updateUserFallback = (id, updates) => {
-    try {
-        const data = fs.readFileSync(usersPath, 'utf8');
-        const { users, lastId } = JSON.parse(data);
-        const index = users.findIndex(u => u.id === id);
-        
-        if (index === -1) throw new Error('User not found');
-        
-        users[index] = {
-            ...users[index],
-            ...updates,
-            updatedAt: new Date().toISOString()
-        };
-        
-        fs.writeFileSync(usersPath, JSON.stringify({ users, lastId }, null, 4));
-        return users[index];
-    } catch (error) {
-        console.error('Error updating user:', error);
-        throw new Error('Failed to update user');
-    }
-};
-
-export const updateUserCartFallback = (userId, cart) => {
-    try {
-        const data = fs.readFileSync(usersPath, 'utf8');
-        const { users, lastId } = JSON.parse(data);
-        const index = users.findIndex(u => u.id === userId);
-        
-        if (index === -1) throw new Error('User not found');
-        
-        users[index].cart = cart;
-        users[index].updatedAt = new Date().toISOString();
-        
-        fs.writeFileSync(usersPath, JSON.stringify({ users, lastId }, null, 4));
-        return users[index];
-    } catch (error) {
-        console.error('Error updating user cart:', error);
-        throw new Error('Failed to update user cart');
-    }
-};
-
-export const addOrderFallback = (userId, order) => {
-    try {
-        const data = fs.readFileSync(usersPath, 'utf8');
-        const { users, lastId } = JSON.parse(data);
-        const index = users.findIndex(u => u.id === userId);
-        
-        if (index === -1) throw new Error('User not found');
-        
-        users[index].orders.push({
+        const [rows] = await pool.execute(
+            'SELECT * FROM orders WHERE user_id = ? ORDER BY created_at DESC',
+            [userId]
+        );
+        return rows.map(order => ({
             ...order,
-            id: Date.now(),
-            createdAt: new Date().toISOString()
-        });
-        users[index].updatedAt = new Date().toISOString();
-        
-        fs.writeFileSync(usersPath, JSON.stringify({ users, lastId }, null, 4));
-        return users[index].orders[users[index].orders.length - 1];
+            items: JSON.parse(order.items),
+            shippingAddress: JSON.parse(order.shipping_address),
+            billingAddress: JSON.parse(order.billing_address),
+            paymentMethod: JSON.parse(order.payment_method)
+        }));
     } catch (error) {
-        console.error('Error adding order:', error);
-        throw new Error('Failed to add order');
+        console.error('Error fetching user orders:', error);
+        return [];
     }
+};
+
+// Health check
+export const healthCheck = async () => {
+    try {
+        const [result] = await pool.execute('SELECT 1');
+        return true;
+    } catch (error) {
+        console.error('Database health check failed:', error);
+        return false;
+    }
+};
+
+export default {
+    pool,
+    getProducts,
+    getProductById,
+    updateProduct,
+    getMySQLUserByEmail,
+    createMySQLUser,
+    createOrder,
+    getUserOrders,
+    healthCheck
 }; 

@@ -13,6 +13,7 @@ export const authOptions = {
             },
             async authorize(credentials) {
                 try {
+                    console.log('Attempting to authenticate user:', credentials.email);
                     const result = await getUserByEmail(credentials.email);
                     
                     if (!result.success) {
@@ -22,14 +23,18 @@ export const authOptions = {
 
                     const user = result.data;
                     if (!user) {
+                        console.log('No user found with email:', credentials.email);
                         return null;
                     }
 
+                    console.log('Comparing passwords for user:', credentials.email);
                     const isValid = await bcrypt.compare(credentials.password, user.password);
                     if (!isValid) {
+                        console.log('Invalid password for user:', credentials.email);
                         return null;
                     }
 
+                    console.log('Authentication successful for user:', credentials.email);
                     return {
                         id: user.id,
                         name: user.name,
@@ -64,7 +69,7 @@ export const authOptions = {
         error: '/auth'
     },
     secret: process.env.NEXTAUTH_SECRET,
-    debug: process.env.NODE_ENV === 'development'
+    debug: true
 };
 
 export default NextAuth(authOptions); 

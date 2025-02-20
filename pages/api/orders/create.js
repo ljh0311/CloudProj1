@@ -1,7 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]';
 import { createOrder } from '../../../lib/db-service';
-import { v4 as uuidv4 } from 'uuid';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -15,7 +14,17 @@ export default async function handler(req, res) {
             return res.status(401).json({ message: 'Not authenticated' });
         }
 
+        console.log('Session data:', { 
+            userId: session.user.id,
+            userEmail: session.user.email 
+        });
+
         const { items, totalAmount, paymentStatus } = req.body;
+        console.log('Order request data:', { 
+            itemsCount: items?.length,
+            totalAmount,
+            paymentStatus
+        });
 
         if (!items || !totalAmount) {
             return res.status(400).json({ message: 'Missing required fields' });
@@ -53,11 +62,24 @@ export default async function handler(req, res) {
             notes: ''
         };
 
+        console.log('Creating order with data:', {
+            orderNumber: orderData.orderNumber,
+            userId: orderData.userId,
+            total: orderData.total,
+            itemsCount: orderData.items.length
+        });
+
         const result = await createOrder(orderData);
 
         if (!result.success) {
+            console.error('Failed to create order:', result.error);
             throw new Error(result.error || 'Failed to create order');
         }
+
+        console.log('Order created successfully:', {
+            orderId: result.data.id,
+            orderNumber: result.data.orderNumber
+        });
 
         res.status(201).json({
             message: 'Order created successfully',
@@ -65,7 +87,10 @@ export default async function handler(req, res) {
             orderNumber: result.data.orderNumber
         });
     } catch (error) {
-        console.error('Error creating order:', error);
-        res.status(500).json({ message: 'Error creating order' });
+        console.error('Error in order creation:', error);
+        res.status(500).json({ 
+            message: 'Error creating order',
+            error: error.message 
+        });
     }
 } 

@@ -1,30 +1,32 @@
-import { getSession } from 'next-auth/react';
-import { getProducts, getUsers, getOrders } from '../../../lib/db-service';
+import { getProducts, getUsers } from '../../../lib/db-service';
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') {
-        res.setHeader('Allow', ['GET']);
-        return res.status(405).end(`Method ${req.method} Not Allowed`);
+        return res.status(405).json({ message: 'Method not allowed' });
     }
 
     try {
-        const [productsResult, usersResult, ordersResult] = await Promise.all([
-            getProducts(),
-            getUsers(),
-            getOrders()
-        ]);
+        const { type } = req.query;
 
-        if (!productsResult.success || !usersResult.success || !ordersResult.success) {
-            throw new Error('Failed to fetch data');
+        if (type === 'products') {
+            const result = await getProducts();
+            if (!result.success) {
+                throw new Error(result.error);
+            }
+            return res.status(200).json({ products: result.data });
         }
 
-        res.status(200).json({
-            products: productsResult.data,
-            users: usersResult.data,
-            orders: ordersResult.data
-        });
+        if (type === 'users') {
+            const result = await getUsers();
+            if (!result.success) {
+                throw new Error(result.error);
+            }
+            return res.status(200).json({ users: result.data });
+        }
+
+        return res.status(400).json({ message: 'Invalid data type requested' });
     } catch (error) {
-        console.error('Error in getData:', error);
-        res.status(500).json({ error: 'Internal server error' });
+        console.error('Error fetching data:', error);
+        res.status(500).json({ message: 'Error fetching data', error: error.message });
     }
 } 

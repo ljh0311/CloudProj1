@@ -720,16 +720,47 @@ export default function AdminDashboard() {
 export async function getServerSideProps(context) {
     const session = await getSession(context);
     
-    if (!session || session.user.role !== 'admin') {
+    // Check if user is not authenticated at all
+    if (!session) {
         return {
             redirect: {
-                destination: '/',
+                destination: '/auth/signin',
                 permanent: false,
             },
         };
     }
 
+    // Check if user exists and has a role property
+    if (!session.user || !session.user.role) {
+        return {
+            redirect: {
+                destination: '/',
+                permanent: false,
+            },
+            props: {
+                error: 'User role not found'
+            }
+        };
+    }
+
+    // Check if user is not an admin
+    if (session.user.role !== 'admin') {
+        return {
+            redirect: {
+                destination: '/',
+                permanent: false,
+            },
+            props: {
+                error: 'Unauthorized access'
+            }
+        };
+    }
+
+    // If all checks pass, return the session
     return {
-        props: { session }
+        props: { 
+            session,
+            user: session.user
+        }
     };
 } 

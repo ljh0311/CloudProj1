@@ -20,22 +20,31 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Email already registered' });
         }
 
-        // Hash password
+        // Hash password with bcrypt
         const hashedPassword = await bcrypt.hash(password, 12);
 
-        // Create user
+        // Create user with proper fields
         const result = await createUser({
             name,
             email,
             password: hashedPassword,
-            role: 'customer'
+            role: 'customer'  // Default role
         });
 
         if (!result.success) {
             throw new Error(result.error);
         }
 
-        res.status(201).json({ message: 'User created successfully' });
+        // Return success without exposing sensitive data
+        res.status(201).json({ 
+            message: 'User created successfully',
+            user: {
+                id: result.data.id,
+                name: result.data.name,
+                email: result.data.email,
+                role: result.data.role
+            }
+        });
     } catch (error) {
         console.error('Signup error:', error);
         res.status(500).json({ error: 'Failed to create user' });

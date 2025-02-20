@@ -21,42 +21,90 @@ import {
     StatLabel,
     StatNumber,
     StatGroup,
-    useToast
+    useToast,
+    Spinner
 } from '@chakra-ui/react';
 import { MdCheckCircle } from 'react-icons/md';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import Navbar from '../../components/Navbar';
 import AnimatedBackground from '../../components/AnimatedBackground';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCart } from '../../components/CartContext';
-import productsData from '../../data/products.json';
 
-export default function ProductDetail({ product }) {
-    const [selectedSize, setSelectedSize] = useState('');
+export default function ProductDetail() {
     const router = useRouter();
-    const toast = useToast();
+    const { id } = router.query;
+    const [product, setProduct] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const { addToCart } = useCart();
+    const toast = useToast();
 
-    if (!product) {
+    useEffect(() => {
+        if (!id) return;
+
+        const fetchProduct = async () => {
+            try {
+                const response = await fetch(`/api/products?id=${id}`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch product');
+                }
+                const data = await response.json();
+                setProduct(data);
+                setError(null);
+            } catch (error) {
+                console.error('Error fetching product:', error);
+                setError(error.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchProduct();
+    }, [id]);
+
+    const handleAddToCart = (size) => {
+        if (!product[`size_${size.toLowerCase()}_stock`]) {
+            toast({
+                title: "Size not available",
+                description: `${product.name} is not available in size ${size}`,
+                status: "error",
+                duration: 2000,
+                isClosable: true,
+            });
+            return;
+        }
+
+        addToCart(product, size);
+        toast({
+            title: "Added to cart",
+            description: `${product.name} (Size ${size}) added to your cart`,
+            status: "success",
+            duration: 2000,
+            isClosable: true,
+        });
+    };
+
+    if (loading) {
         return (
-            <>
+            <Box position="relative" minH="100vh" bg="black">
                 <Navbar />
-                <Box as="main" bg="black" color="white" minH="100vh">
-                    <Container maxW="container.xl" py={20}>
-                        <Heading>Product Not Found</Heading>
-                        <Button
-                            mt={4}
-                            onClick={() => router.push('/shop')}
-                            bg="white"
-                            color="black"
-                            _hover={{ bg: 'whiteAlpha.800' }}
-                        >
-                            Back to Shop
-                        </Button>
-                    </Container>
-                </Box>
-            </>
+                <Container centerContent py={20}>
+                    <Spinner size="xl" color="white" />
+                </Container>
+            </Box>
+        );
+    }
+
+    if (error || !product) {
+        return (
+            <Box position="relative" minH="100vh" bg="black">
+                <Navbar />
+                <Container centerContent py={20}>
+                    <Text color="white">Error loading product: {error || 'Product not found'}</Text>
+                </Container>
+            </Box>
         );
     }
 
@@ -67,213 +115,101 @@ export default function ProductDetail({ product }) {
         return "red";
     };
 
-    const handleAddToCart = () => {
-        const stockForSize = product[`size_${selectedSize.toLowerCase()}_stock`];
-        if (!stockForSize) {
-            toast({
-                title: "Size not available",
-                description: `${product.name} is not available in size ${selectedSize}`,
-                status: "error",
-                duration: 3000,
-                isClosable: true,
-            });
-            return;
-        }
-        addToCart(product, selectedSize);
-        toast({
-            title: "Added to Cart",
-            description: `${product.name} (Size ${selectedSize}) has been added to your cart.`,
-            status: "success",
-            duration: 3000,
-            isClosable: true,
-        });
-    };
-
     return (
         <>
             <Head>
-                <title>{product.name} | KAPPY Vintage</title>
+                <title>{product.name} | KAPPY</title>
                 <meta name="description" content={product.description} />
             </Head>
 
-            <Box minH="100vh" bg="black" position="relative" overflow="hidden">
+            <Box position="relative" minH="100vh" bg="black">
                 <AnimatedBackground />
-
+                
                 <Box position="relative" zIndex={1}>
                     <Navbar />
 
-                    <Container maxW={'7xl'} py={12}>
-                        <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={10}>
-                            {/* Product Image */}
-                            <Flex>
-                                <Image
-                                    rounded={'md'}
-                                    alt={product.name}
-                                    src={product.image}
-                                    fit={'cover'}
-                                    align={'center'}
-                                    w={'100%'}
-                                    h={{ base: '100%', sm: '400px', lg: '500px' }}
-                                />
-                            </Flex>
-
-                            {/* Product Details */}
-                            <Stack spacing={6}>
-                                <Box as={'header'}>
-                                    <Heading
-                                        color="white"
-                                        lineHeight={1.1}
-                                        fontWeight={600}
-                                        fontSize={{ base: '2xl', sm: '4xl', lg: '5xl' }}>
-                                        {product.name}
-                                    </Heading>
-                                    <Text
-                                        color="whiteAlpha.800"
-                                        fontWeight={300}
-                                        fontSize={'2xl'}>
-                                        ${product.price.toFixed(2)}
-                                    </Text>
+                    <Container maxW="container.xl" py={8}>
+                        <Box
+                            bg="rgba(0, 0, 0, 0.4)"
+                            backdropFilter="blur(8px)"
+                            borderRadius="lg"
+                            borderWidth="1px"
+                            borderColor="whiteAlpha.200"
+                            p={8}
+                        >
+                            <HStack spacing={8} align="start">
+                                {/* Product Image */}
+                                <Box flex="1">
+                                    <Image
+                                        src={product.image}
+                                        alt={product.name}
+                                        borderRadius="lg"
+                                        w="100%"
+                                        h="auto"
+                                        objectFit="cover"
+                                    />
                                 </Box>
 
-                                <Stack
-                                    spacing={4}
-                                    divider={
-                                        <StackDivider borderColor="whiteAlpha.200" />
-                                    }>
-                                    <VStack spacing={4} align="stretch">
-                                        <Text color="white" fontSize={'lg'}>
-                                            {product.description}
-                                        </Text>
+                                {/* Product Details */}
+                                <VStack flex="1" align="start" spacing={6}>
+                                    <Heading 
+                                        color="white"
+                                        size="xl"
+                                        bgGradient="linear(to-r, white, whiteAlpha.800)"
+                                        bgClip="text"
+                                    >
+                                        {product.name}
+                                    </Heading>
 
-                                        {/* Size Selection and Availability */}
-                                        <Box>
-                                            <Text color="white" fontSize="lg" fontWeight="semibold" mb={4}>
-                                                Size & Availability
+                                    <Text color="white" fontSize="2xl" fontWeight="bold">
+                                        ${product.price.toFixed(2)}
+                                    </Text>
+
+                                    <Text color="whiteAlpha.800">
+                                        Material: {product.material}
+                                    </Text>
+
+                                    <Text color="whiteAlpha.800">
+                                        {product.description}
+                                    </Text>
+
+                                    <Box>
+                                        <Text color="white" mb={2}>Available Sizes:</Text>
+                                        <HStack spacing={4}>
+                                            {['S', 'M', 'L'].map(size => (
+                                                <Button
+                                                    key={size}
+                                                    onClick={() => handleAddToCart(size)}
+                                                    isDisabled={!product[`size_${size.toLowerCase()}_stock`]}
+                                                    colorScheme="blue"
+                                                    variant="outline"
+                                                >
+                                                    {size}
+                                                </Button>
+                                            ))}
+                                        </HStack>
+                                    </Box>
+
+                                    <Box>
+                                        <Text color="white" mb={2}>Stock Availability:</Text>
+                                        <VStack align="start" spacing={1}>
+                                            <Text color="whiteAlpha.800">
+                                                Small: {product.size_s_stock} available
                                             </Text>
-                                            <StatGroup
-                                                bg="rgba(0,0,0,0.3)"
-                                                p={4}
-                                                borderRadius="md"
-                                                borderWidth="1px"
-                                                borderColor="whiteAlpha.200"
-                                            >
-                                                <Stat>
-                                                    <StatLabel color="white">Small</StatLabel>
-                                                    <StatNumber color={`${getSizeAvailabilityColor(product.size_s_stock)}.400`}>
-                                                        {product.size_s_stock ? `${product.size_s_stock} left` : 'Not available'}
-                                                    </StatNumber>
-                                                </Stat>
-                                                <Stat>
-                                                    <StatLabel color="white">Medium</StatLabel>
-                                                    <StatNumber color={`${getSizeAvailabilityColor(product.size_m_stock)}.400`}>
-                                                        {product.size_m_stock ? `${product.size_m_stock} left` : 'Not available'}
-                                                    </StatNumber>
-                                                </Stat>
-                                                <Stat>
-                                                    <StatLabel color="white">Large</StatLabel>
-                                                    <StatNumber color={`${getSizeAvailabilityColor(product.size_l_stock)}.400`}>
-                                                        {product.size_l_stock ? `${product.size_l_stock} left` : 'Not available'}
-                                                    </StatNumber>
-                                                </Stat>
-                                            </StatGroup>
-
-                                            <RadioGroup
-                                                onChange={setSelectedSize}
-                                                value={selectedSize}
-                                                mt={4}
-                                            >
-                                                <HStack spacing={4}>
-                                                    {[
-                                                        { label: 'S', stock: product.size_s_stock },
-                                                        { label: 'M', stock: product.size_m_stock },
-                                                        { label: 'L', stock: product.size_l_stock }
-                                                    ].map(({ label, stock }) => (
-                                                        <Tooltip
-                                                            key={label}
-                                                            label={stock ? `${stock} available` : 'Not available'}
-                                                            hasArrow
-                                                        >
-                                                            <Box>
-                                                                <Radio
-                                                                    value={label}
-                                                                    isDisabled={!stock || stock === 0}
-                                                                    colorScheme="white"
-                                                                    borderColor="whiteAlpha.400"
-                                                                    _checked={{
-                                                                        bg: "white",
-                                                                        borderColor: "white"
-                                                                    }}
-                                                                >
-                                                                    <Text color="white">{label}</Text>
-                                                                </Radio>
-                                                            </Box>
-                                                        </Tooltip>
-                                                    ))}
-                                                </HStack>
-                                            </RadioGroup>
-                                        </Box>
-
-                                        {/* Product Details List */}
-                                        <List spacing={2} color="whiteAlpha.800">
-                                            <ListItem>
-                                                <Text as={'span'} fontWeight={'bold'} color="white">
-                                                    Category:
-                                                </Text>{' '}
-                                                {product.category}
-                                            </ListItem>
-                                            <ListItem>
-                                                <Text as={'span'} fontWeight={'bold'} color="white">
-                                                    Material:
-                                                </Text>{' '}
-                                                {product.material}
-                                            </ListItem>
-                                        </List>
-                                    </VStack>
-                                </Stack>
-
-                                <Button
-                                    w={'full'}
-                                    size={'lg'}
-                                    bg={'white'}
-                                    color={'black'}
-                                    _hover={{
-                                        transform: 'translateY(-2px)',
-                                        boxShadow: 'lg',
-                                        bg: 'whiteAlpha.800'
-                                    }}
-                                    isDisabled={!selectedSize}
-                                    onClick={handleAddToCart}
-                                >
-                                    Add to Cart
-                                </Button>
-                            </Stack>
-                        </SimpleGrid>
+                                            <Text color="whiteAlpha.800">
+                                                Medium: {product.size_m_stock} available
+                                            </Text>
+                                            <Text color="whiteAlpha.800">
+                                                Large: {product.size_l_stock} available
+                                            </Text>
+                                        </VStack>
+                                    </Box>
+                                </VStack>
+                            </HStack>
+                        </Box>
                     </Container>
                 </Box>
             </Box>
         </>
     );
-}
-
-export async function getServerSideProps({ params }) {
-    try {
-        const product = productsData.products.find(p => p.id === parseInt(params.id));
-
-        if (!product) {
-            return {
-                notFound: true
-            };
-        }
-
-        return {
-            props: {
-                product
-            }
-        };
-    } catch (error) {
-        console.error('Error fetching product:', error);
-        return {
-            notFound: true
-        };
-    }
 } 

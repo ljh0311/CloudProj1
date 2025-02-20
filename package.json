@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "NODE_ENV=production node -r dotenv/config ./node_modules/.bin/next start -p 3000",
+    "check-env": "node -r dotenv/config check-env.js",
     "lint": "next lint",
     "format": "prettier --write .",
     "prepare": "husky install",
@@ -19,7 +20,7 @@
     "@emotion/react": "^11.11.3",
     "@emotion/styled": "^11.11.0",
     "bcryptjs": "^2.4.3",
-    "dotenv": "^16.4.7",
+    "dotenv": "^16.0.3",
     "formik": "^2.4.6",
     "framer-motion": "^10.17.9",
     "mysql2": "^3.12.0",

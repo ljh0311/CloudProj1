@@ -96,7 +96,7 @@ async function initializeDatabase() {
         await connection.execute(`
             CREATE TABLE orders (
                 id INT PRIMARY KEY AUTO_INCREMENT,
-                userId INT NOT NULL,
+                user_id INT NOT NULL,
                 orderNumber VARCHAR(50) UNIQUE NOT NULL,
                 items JSON NOT NULL,
                 subtotal DECIMAL(10,2) NOT NULL,
@@ -110,8 +110,8 @@ async function initializeDatabase() {
                 notes TEXT,
                 createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                FOREIGN KEY (userId) REFERENCES users(id),
-                INDEX idx_user (userId),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT ON UPDATE CASCADE,
+                INDEX idx_user (user_id),
                 INDEX idx_status (status),
                 INDEX idx_orderNumber (orderNumber)
             )

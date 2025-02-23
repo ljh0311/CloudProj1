@@ -196,6 +196,73 @@ const UserForm = ({ initialData, onSubmit, onClose }) => {
     );
 };
 
+// Order Management Component
+const OrdersPanel = ({ orders, onUpdateStatus, onDeleteOrder }) => {
+    return (
+        <Box
+            bg="rgba(0, 0, 0, 0.4)"
+            backdropFilter="blur(8px)"
+            borderRadius="lg"
+            borderWidth="1px"
+            borderColor="whiteAlpha.200"
+            overflowX="auto"
+        >
+            <Table variant="simple">
+                <Thead>
+                    <Tr>
+                        <Th color="white">Order Number</Th>
+                        <Th color="white">Customer</Th>
+                        <Th color="white">Date</Th>
+                        <Th color="white">Total</Th>
+                        <Th color="white">Status</Th>
+                        <Th color="white">Actions</Th>
+                    </Tr>
+                </Thead>
+                <Tbody>
+                    {orders.map((order) => (
+                        <Tr key={order.id}>
+                            <Td color="white">{order.orderNumber}</Td>
+                            <Td color="white">
+                                <VStack align="start" spacing={0}>
+                                    <Text>{order.userName}</Text>
+                                    <Text fontSize="sm" color="whiteAlpha.700">{order.userEmail}</Text>
+                                </VStack>
+                            </Td>
+                            <Td color="white">{formatDate(order.createdAt)}</Td>
+                            <Td color="white">${Number(order.total).toFixed(2)}</Td>
+                            <Td>
+                                <Select
+                                    value={order.status}
+                                    onChange={(e) => onUpdateStatus(order.id, e.target.value)}
+                                    bg="whiteAlpha.200"
+                                    color="white"
+                                    borderColor="whiteAlpha.300"
+                                >
+                                    <option value="pending">Pending</option>
+                                    <option value="processing">Processing</option>
+                                    <option value="shipped">Shipped</option>
+                                    <option value="delivered">Delivered</option>
+                                    <option value="cancelled">Cancelled</option>
+                                </Select>
+                            </Td>
+                            <Td>
+                                <HStack spacing={2}>
+                                    <IconButton
+                                        icon={<DeleteIcon />}
+                                        onClick={() => onDeleteOrder(order.id)}
+                                        colorScheme="red"
+                                        variant="ghost"
+                                    />
+                                </HStack>
+                            </Td>
+                        </Tr>
+                    ))}
+                </Tbody>
+            </Table>
+        </Box>
+    );
+};
+
 export default function AdminDashboard() {
     const [products, setProducts] = useState([]);
     const [users, setUsers] = useState([]);
@@ -206,6 +273,7 @@ export default function AdminDashboard() {
     const cancelRef = useRef();
     const toast = useToast();
     const [showPassword, setShowPassword] = useState({});
+    const [orders, setOrders] = useState([]);
 
     const {
         isOpen: isProductModalOpen,
@@ -224,20 +292,23 @@ export default function AdminDashboard() {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const [productsRes, usersRes] = await Promise.all([
+                const [productsRes, usersRes, ordersRes] = await Promise.all([
                     fetch('/api/admin/products'),
-                    fetch('/api/admin/users')
+                    fetch('/api/admin/users'),
+                    fetch('/api/admin/orders')
                 ]);
 
-                if (!productsRes.ok || !usersRes.ok) {
+                if (!productsRes.ok || !usersRes.ok || !ordersRes.ok) {
                     throw new Error('Failed to fetch data');
                 }
 
                 const productsData = await productsRes.json();
                 const usersData = await usersRes.json();
+                const ordersData = await ordersRes.json();
 
                 setProducts(productsData.data || []);
                 setUsers(usersData.data || []);
+                setOrders(ordersData.data || []);
             } catch (error) {
                 console.error('Error fetching data:', error);
                 toast({
@@ -491,6 +562,72 @@ export default function AdminDashboard() {
         }
     };
 
+    // Order Management Functions
+    const handleUpdateOrderStatus = async (orderId, newStatus) => {
+        try {
+            const response = await fetch('/api/admin/orders', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: orderId, status: newStatus })
+            });
+
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.error || 'Failed to update order status');
+            }
+
+            setOrders(prev => prev.map(order => 
+                order.id === orderId ? { ...order, status: newStatus } : order
+            ));
+
+            toast({
+                title: "Success",
+                description: "Order status updated successfully",
+                status: "success",
+                duration: 3000,
+                isClosable: true,
+            });
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: error.message,
+                status: "error",
+                duration: 3000,
+                isClosable: true,
+            });
+        }
+    };
+
+    const handleDeleteOrder = async (orderId) => {
+        try {
+            const response = await fetch(`/api/admin/orders?id=${orderId}`, {
+                method: 'DELETE'
+            });
+
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.error || 'Failed to delete order');
+            }
+
+            setOrders(prev => prev.filter(order => order.id !== orderId));
+            toast({
+                title: "Success",
+                description: "Order deleted successfully",
+                status: "success",
+                duration: 3000,
+                isClosable: true,
+            });
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: error.message,
+                status: "error",
+                duration: 3000,
+                isClosable: true,
+            });
+        }
+    };
+
     return (
         <>
             <Head>
@@ -519,6 +656,7 @@ export default function AdminDashboard() {
                             <TabList>
                                 <Tab color="white" _selected={{ bg: 'whiteAlpha.200' }}>Products</Tab>
                                 <Tab color="white" _selected={{ bg: 'whiteAlpha.200' }}>Users</Tab>
+                                <Tab color="white" _selected={{ bg: 'whiteAlpha.200' }}>Orders</Tab>
                             </TabList>
 
                             <TabPanels>
@@ -696,6 +834,15 @@ export default function AdminDashboard() {
                                             </Tbody>
                                         </Table>
                                     </Box>
+                                </TabPanel>
+
+                                {/* Orders Panel */}
+                                <TabPanel>
+                                    <OrdersPanel
+                                        orders={orders}
+                                        onUpdateStatus={handleUpdateOrderStatus}
+                                        onDeleteOrder={handleDeleteOrder}
+                                    />
                                 </TabPanel>
                             </TabPanels>
                         </Tabs>

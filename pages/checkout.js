@@ -183,6 +183,14 @@ export default function Checkout() {
             const shipping = subtotal > 100 ? 0 : 10; // Free shipping over $100
             const total = subtotal + tax + shipping;
 
+            console.log('Sending order request with data:', {
+                subtotal,
+                tax,
+                shipping,
+                total,
+                itemsCount: cartItems.length
+            });
+
             // Create order
             const response = await fetch('/api/orders/create', {
                 method: 'POST',
@@ -214,9 +222,10 @@ export default function Checkout() {
             });
 
             const data = await response.json();
+            console.log('Order API response:', data);
 
             if (!response.ok) {
-                throw new Error(data.error || 'Failed to create order');
+                throw new Error(data.error || `Failed to create order: ${response.status} ${response.statusText}`);
             }
 
             if (!data.success) {

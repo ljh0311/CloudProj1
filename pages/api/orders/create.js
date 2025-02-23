@@ -11,7 +11,10 @@ export default async function handler(req, res) {
         const session = await getServerSession(req, res, authOptions);
         
         if (!session) {
-            return res.status(401).json({ message: 'Not authenticated' });
+            return res.status(401).json({ 
+                success: false,
+                error: 'Not authenticated' 
+            });
         }
 
         console.log('Session data:', { 
@@ -20,15 +23,28 @@ export default async function handler(req, res) {
         });
 
         const { items, subtotal, tax, shipping, total, status, shipping_address, billing_address, payment_method } = req.body;
-        console.log('Order request data:', { 
-            itemsCount: items?.length,
-            total,
-            status
-        });
-
-        if (!items || !total) {
-            return res.status(400).json({ message: 'Missing required fields' });
+        
+        // Validate required fields
+        if (!items || !Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'No items in order' 
+            });
         }
+
+        if (typeof total !== 'number' || total <= 0) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'Invalid total amount' 
+            });
+        }
+
+        console.log('Order request data:', { 
+            itemsCount: items.length,
+            total,
+            status,
+            user_id: session.user.id
+        });
 
         // Create order in database
         const orderData = {
@@ -66,8 +82,15 @@ export default async function handler(req, res) {
         const result = await createOrder(orderData);
 
         if (!result.success) {
-            console.error('Failed to create order:', result.error);
-            throw new Error(result.error || 'Failed to create order');
+            console.error('Failed to create order:', {
+                error: result.error,
+                details: result.details
+            });
+            return res.status(500).json({ 
+                success: false,
+                error: result.error,
+                details: result.details
+            });
         }
 
         console.log('Order created successfully:', {
@@ -83,7 +106,8 @@ export default async function handler(req, res) {
         console.error('Error in order creation:', error);
         res.status(500).json({ 
             success: false,
-            error: error.message 
+            error: error.message,
+            details: error.stack
         });
     }
 } 

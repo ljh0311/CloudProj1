@@ -219,6 +219,7 @@ export default function Checkout() {
         try {
             // Check stock availability first
             const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+            console.log('Making request to:', `${baseUrl}/api/products/check-stock`);
             const stockCheckResponse = await fetch(`${baseUrl}/api/products/check-stock`, {
                 method: 'POST',
                 headers: {
@@ -233,6 +234,10 @@ export default function Checkout() {
                 })
             });
 
+            if (!stockCheckResponse.ok) {
+                throw new Error(`Stock check failed: ${stockCheckResponse.status} ${stockCheckResponse.statusText}`);
+            }
+
             const stockCheckData = await stockCheckResponse.json();
             if (!stockCheckData.success) {
                 setError(stockCheckData.message);
@@ -241,6 +246,7 @@ export default function Checkout() {
             }
 
             // Proceed with order creation
+            console.log('Making request to:', `${baseUrl}/api/orders/create`);
             const response = await fetch(`${baseUrl}/api/orders/create`, {
                 method: 'POST',
                 headers: {

@@ -15,7 +15,7 @@ export default async function handler(req, res) {
         }
 
         console.log('Session data:', { 
-            user_id: session.user.id,
+            userId: session.user.id,
             email: session.user.email 
         });
 
@@ -57,8 +57,8 @@ export default async function handler(req, res) {
         };
 
         console.log('Creating order with data:', {
-            order_number: orderData.orderNumber,
-            user_id: orderData.userId,
+            orderNumber: orderData.orderNumber,
+            userId: orderData.userId,
             total: orderData.total,
             itemsCount: orderData.items.length
         });
@@ -72,7 +72,7 @@ export default async function handler(req, res) {
 
         console.log('Order created successfully:', {
             id: result.data.id,
-            order_number: result.data.orderNumber
+            orderNumber: result.data.orderNumber
         });
 
         res.status(201).json({

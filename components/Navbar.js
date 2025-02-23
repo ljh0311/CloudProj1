@@ -34,7 +34,13 @@ import Logo from './Logo';
 import { useCart } from './CartContext';
 import { useState } from 'react';
 
-// Navigation link component with consistent styling
+/**
+ * Navigation link component with consistent styling
+ * @param {Object} props
+ * @param {string} props.href - The link destination
+ * @param {React.ReactNode} props.children - The link content
+ * @param {React.ReactNode} props.icon - Optional icon to display before the text
+ */
 const NavLink = ({ href, children, icon }) => (
   <LinkBox>
     <LinkOverlay as={NextLink} href={href}>
@@ -61,7 +67,11 @@ const NavLink = ({ href, children, icon }) => (
   </LinkBox>
 );
 
-// Login status component
+/**
+ * Component to display user login status
+ * @param {Object} props
+ * @param {Object} props.session - The user session object
+ */
 const LoginStatus = ({ session }) => (
   <Text
     color="whiteAlpha.900"
@@ -86,7 +96,16 @@ const LoginStatus = ({ session }) => (
   </Text>
 );
 
-// Menu item component for user dropdown
+/**
+ * Menu item component for user dropdown
+ * @param {Object} props
+ * @param {string} props.href - Optional link destination
+ * @param {React.ReactNode} props.icon - Icon to display
+ * @param {string} props.label - Menu item text
+ * @param {Function} props.onClick - Optional click handler
+ * @param {string} props.color - Text color
+ * @param {string} props.hoverBg - Background color on hover
+ */
 const UserMenuItem = ({ href, icon, label, onClick, color = "white", hoverBg = "gray.700" }) => (
   <MenuItem
     as={href ? NextLink : undefined}
@@ -108,7 +127,11 @@ const UserMenuItem = ({ href, icon, label, onClick, color = "white", hoverBg = "
   </MenuItem>
 );
 
-// Cart button component
+/**
+ * Cart button component with item count badge
+ * @param {Object} props
+ * @param {number} props.cartItemCount - Number of items in cart
+ */
 const CartButton = ({ cartItemCount }) => (
   <Button
     as={NextLink}
@@ -136,7 +159,12 @@ const CartButton = ({ cartItemCount }) => (
   </Button>
 );
 
-// User menu component
+/**
+ * User menu dropdown component
+ * @param {Object} props
+ * @param {Object} props.session - The user session object
+ * @param {boolean} props.isAdmin - Whether the user has admin privileges
+ */
 const UserMenu = ({ session, isAdmin }) => (
   <Menu>
     <MenuButton
@@ -180,6 +208,11 @@ const UserMenu = ({ session, isAdmin }) => (
             href="/admin/dashboard"
             icon="⚙️"
             label="Admin Dashboard"
+          />
+          <UserMenuItem
+            href="/dev/debug"
+            icon="🛠️"
+            label="Debug Tools"
           />
         </>
       )}

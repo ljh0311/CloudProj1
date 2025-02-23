@@ -1,3 +1,4 @@
+// Chakra UI Components
 import {
   Box,
   Flex,
@@ -21,13 +22,17 @@ import {
   MenuDivider,
   Avatar
 } from '@chakra-ui/react';
+
+// Icons and Third-party Components
 import { HamburgerIcon, CloseIcon, ChevronDownIcon } from '@chakra-ui/icons';
 import { FaShoppingCart, FaUser } from 'react-icons/fa';
-import Logo from './Logo';
 import NextLink from 'next/link';
-import { useState } from 'react';
-import { useCart } from './CartContext';
 import { useSession, signOut } from 'next-auth/react';
+
+// Custom Components and Hooks
+import Logo from './Logo';
+import { useCart } from './CartContext';
+import { useState } from 'react';
 
 // Navigation link component with consistent styling
 const NavLink = ({ href, children, icon }) => (
@@ -214,14 +219,14 @@ const DevToolsButton = ({ isAdmin }) => {
   return (
     <Button
       as={NextLink}
-      href="/dev/dashboard"
+      href="/dev/debug"
       variant="ghost"
       color="white"
       leftIcon={<Text fontSize="lg">🛠️</Text>}
       _hover={{ bg: 'rgba(255, 255, 255, 0.1)' }}
       size="sm"
     >
-      Dev Tools
+      Debug Tools
     </Button>
   );
 };
@@ -249,7 +254,7 @@ export default function Navbar() {
   const mobileNavLinks = [
     ...navLinks,
     ...(isAdmin ? [
-      { href: "/dev/dashboard", label: "Dev Tools 🛠️" },
+      { href: "/dev/debug", label: "Debug Tools 🛠️" },
       { href: "/admin/dashboard", label: "Admin Dashboard ⚙️" }
     ] : []),
     { href: "/cart", label: `Cart ${cartItemCount > 0 ? `(${cartItemCount})` : ''}` },

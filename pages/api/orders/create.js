@@ -1,5 +1,5 @@
-import { getSession } from 'next-auth/react';
-import { pool, executeQuery } from '../../../lib/mysql';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '../auth/[...nextauth]';
 import { createOrder } from '../../../lib/db-service';
 
 export default async function handler(req, res) {
@@ -8,32 +8,18 @@ export default async function handler(req, res) {
     }
 
     try {
-        const session = await getSession({ req });
-        if (!session) {
+        const session = await getServerSession(req, res, authOptions);
+        
+        if (!session?.user?.id) {
+            console.error('Unauthorized: No valid session or user ID');
             return res.status(401).json({ error: 'Unauthorized' });
         }
 
         console.log('Session data:', {
             user: session.user,
-            userId: session.user.id,
+            id: session.user.id,
             email: session.user.email
         });
-
-        // Verify user exists in database
-        const userResult = await executeQuery(
-            'SELECT id FROM users WHERE id = ?',
-            [session.user.id]
-        );
-
-        if (!userResult.success) {
-            console.error('Database error during user verification:', userResult.error);
-            return res.status(500).json({ error: 'Database error during user verification' });
-        }
-
-        if (userResult.data.length === 0) {
-            console.error('User not found in database:', session.user.id);
-            return res.status(400).json({ error: `User not found: ${session.user.id}` });
-        }
 
         // Process the order
         const orderData = {
@@ -47,12 +33,12 @@ export default async function handler(req, res) {
         
         if (!result.success) {
             console.error('Order creation failed:', result.error);
-            return res.status(500).json({ error: `Payment processing error: ${result.error}` });
+            return res.status(500).json({ error: result.error });
         }
 
         return res.status(200).json(result.data);
     } catch (error) {
         console.error('Order creation error:', error);
-        return res.status(500).json({ error: `Payment processing error: ${error.message}` });
+        return res.status(500).json({ error: error.message });
     }
 } 

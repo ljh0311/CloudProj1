@@ -667,15 +667,15 @@ export default function DevDashboard() {
     return (
         <>
             <Head>
-                <title>Developer Dashboard | KAPPY</title>
-                <meta name="description" content="Developer dashboard for database inspection" />
+                <title>Debug Dashboard | KAPPY</title>
+                <meta name="description" content="Developer debug dashboard for database inspection and system diagnostics" />
             </Head>
 
             <Box minH="100vh" bg="gray.900">
                 <Navbar />
                 <Container maxW="container.xl" py={8}>
                     <Flex align="center" mb={8}>
-                        <Heading color="white">Developer Dashboard</Heading>
+                        <Heading color="white">Debug Dashboard</Heading>
                         <Spacer />
                         <Button
                             colorScheme="blue"

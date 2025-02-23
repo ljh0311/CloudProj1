@@ -58,7 +58,7 @@ async function main() {
         'shop.js': '/pages/shop.js',
         'auth.js': '/pages/auth.js',
         'admin/dashboard.js': '/pages/admin/dashboard.js',
-        'dev/dashboard.js': '/pages/dev/dashboard.js'
+        'dev/debug.js': '/pages/dev/debug.js'
     };
 
     console.log(chalk.blue.bold('\nDatabase Usage Analysis\n'));

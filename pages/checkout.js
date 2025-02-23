@@ -226,7 +226,8 @@ export default function Checkout() {
 
         try {
             // Check stock availability first
-            const stockCheckResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/products/check-stock`, {
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+            const stockCheckResponse = await fetch(`${baseUrl}/api/products/check-stock`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -263,7 +264,7 @@ export default function Checkout() {
             };
 
             // Create order
-            const response = await fetch('/api/orders/create', {
+            const response = await fetch(`${baseUrl}/api/orders/create`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

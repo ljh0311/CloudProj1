@@ -5,7 +5,6 @@ import PageTransition from '../components/PageTransition'
 import { SessionProvider } from 'next-auth/react'
 import { CartProvider } from '../components/CartContext'
 import Head from 'next/head'
-import theme from '../theme'
 
 function MyApp({ Component, pageProps: { session, ...pageProps } }) {
     const router = useRouter()
@@ -39,7 +38,7 @@ function MyApp({ Component, pageProps: { session, ...pageProps } }) {
             refetchWhenOffline={false}
             baseUrl={process.env.NEXTAUTH_URL}
         >
-            <ChakraProvider theme={theme}>
+            <ChakraProvider>
                 <CartProvider>
                     <Head>
                         <title>KAPPY - Vintage Streetwear</title>

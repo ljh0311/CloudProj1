@@ -226,7 +226,7 @@ export default function Checkout() {
 
         try {
             // Check stock availability first
-            const stockCheckResponse = await fetch('/api/products/check-stock', {
+            const stockCheckResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || ''}/api/products/check-stock`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

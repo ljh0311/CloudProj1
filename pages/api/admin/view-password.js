@@ -1,47 +1,61 @@
-import mysql from 'mysql2/promise';
-import { getSession } from 'next-auth/react';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '../auth/[...nextauth]';
+import { pool } from '../../../lib/mysql';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
-        return res.status(405).json({ error: 'Method not allowed' });
+        return res.status(405).json({ 
+            success: false, 
+            error: 'Method not allowed' 
+        });
     }
 
     try {
-        // Verify admin session
-        const session = await getSession({ req });
+        const session = await getServerSession(req, res, authOptions);
+        
         if (!session || session.user.role !== 'admin') {
-            return res.status(403).json({ error: 'Unauthorized' });
+            return res.status(401).json({ 
+                success: false, 
+                error: 'Unauthorized' 
+            });
         }
 
         const { userId } = req.body;
 
-        // Connect to database
-        const connection = await mysql.createConnection({
-            host: process.env.DB_HOST,
-            user: process.env.DB_USER,
-            password: process.env.DB_PASSWORD,
-            database: process.env.DB_NAME
-        });
+        if (!userId) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'User ID is required' 
+            });
+        }
 
-        // Get user's password (assuming you store original passwords in a separate secure table)
-        const [rows] = await connection.execute(
-            'SELECT original_password FROM user_passwords WHERE user_id = ?',
+        // Get user's password (hashed)
+        const [user] = await pool.execute(
+            'SELECT password FROM users WHERE id = ?',
             [userId]
         );
 
-        await connection.end();
-
-        if (rows.length === 0) {
-            return res.status(404).json({ error: 'Password not found' });
+        if (!user || user.length === 0) {
+            return res.status(404).json({ 
+                success: false, 
+                error: 'User not found' 
+            });
         }
 
-        // Log this action for security audit
-        console.log(`Admin ${session.user.email} viewed password for user ID ${userId} at ${new Date().toISOString()}`);
+        // For security reasons, we only show the first and last few characters
+        const hashedPassword = user[0].password;
+        const maskedPassword = `${hashedPassword.slice(0, 10)}...${hashedPassword.slice(-10)}`;
 
-        return res.status(200).json({ password: rows[0].original_password });
-
+        return res.status(200).json({ 
+            success: true, 
+            password: maskedPassword 
+        });
     } catch (error) {
-        console.error('Error retrieving password:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+        console.error('Error viewing password:', error);
+        return res.status(500).json({ 
+            success: false, 
+            error: 'Internal server error',
+            details: error.message
+        });
     }
 }

@@ -255,37 +255,6 @@ export default function AdminDashboard() {
         fetchData();
     }, [toast]);
 
-    // Function to update data through API
-    const updateData = async (type, newData) => {
-        try {
-            const response = await fetch('/api/admin/updateData', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    type,
-                    data: type === 'products' 
-                        ? { products: newData, lastId: newData[newData.length - 1]?.id || 0 }
-                        : { users: newData, lastId: newData[newData.length - 1]?.id || 0 }
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to update data');
-            }
-        } catch (error) {
-            console.error('Error updating data:', error);
-            toast({
-                title: "Error",
-                description: "Failed to save changes",
-                status: "error",
-                duration: 3000,
-                isClosable: true,
-            });
-        }
-    };
-
     // Product Management Functions
     const handleAddProduct = async (productData) => {
         try {
@@ -295,15 +264,16 @@ export default function AdminDashboard() {
                 body: JSON.stringify(productData)
             });
 
+            const result = await response.json();
             if (!response.ok) {
-                throw new Error('Failed to add product');
+                throw new Error(result.error || 'Failed to add product');
             }
 
-            const result = await response.json();
             setProducts(prev => [...prev, result.data]);
             onProductModalClose();
             toast({
-                title: "Product added successfully",
+                title: "Success",
+                description: "Product added successfully",
                 status: "success",
                 duration: 3000,
                 isClosable: true,
@@ -327,17 +297,18 @@ export default function AdminDashboard() {
                 body: JSON.stringify({ ...productData, id: selectedItem.id })
             });
 
+            const updateResult = await response.json();
             if (!response.ok) {
-                throw new Error('Failed to update product');
+                throw new Error(updateResult.error || 'Failed to update product');
             }
 
-            const result = await response.json();
             setProducts(prev => prev.map(product => 
-                product.id === selectedItem.id ? result.data : product
+                product.id === selectedItem.id ? updateResult.data : product
             ));
             onProductModalClose();
             toast({
-                title: "Product updated successfully",
+                title: "Success",
+                description: "Product updated successfully",
                 status: "success",
                 duration: 3000,
                 isClosable: true,
@@ -359,14 +330,16 @@ export default function AdminDashboard() {
                 method: 'DELETE'
             });
 
+            const deleteResult = await response.json();
             if (!response.ok) {
-                throw new Error('Failed to delete product');
+                throw new Error(deleteResult.error || 'Failed to delete product');
             }
 
             setProducts(prev => prev.filter(product => product.id !== id));
             setIsDeleteDialogOpen(false);
             toast({
-                title: "Product deleted successfully",
+                title: "Success",
+                description: "Product deleted successfully",
                 status: "success",
                 duration: 3000,
                 isClosable: true,
@@ -391,15 +364,16 @@ export default function AdminDashboard() {
                 body: JSON.stringify(userData)
             });
 
+            const result = await response.json();
             if (!response.ok) {
-                throw new Error('Failed to add user');
+                throw new Error(result.error || 'Failed to add user');
             }
 
-            const result = await response.json();
             setUsers(prev => [...prev, result.data]);
             onUserModalClose();
             toast({
-                title: "User added successfully",
+                title: "Success",
+                description: "User added successfully",
                 status: "success",
                 duration: 3000,
                 isClosable: true,
@@ -423,17 +397,18 @@ export default function AdminDashboard() {
                 body: JSON.stringify({ ...userData, id: selectedItem.id })
             });
 
+            const result = await response.json();
             if (!response.ok) {
-                throw new Error('Failed to update user');
+                throw new Error(result.error || 'Failed to update user');
             }
 
-            const result = await response.json();
             setUsers(prev => prev.map(user => 
                 user.id === selectedItem.id ? result.data : user
             ));
             onUserModalClose();
             toast({
-                title: "User updated successfully",
+                title: "Success",
+                description: "User updated successfully",
                 status: "success",
                 duration: 3000,
                 isClosable: true,
@@ -455,14 +430,16 @@ export default function AdminDashboard() {
                 method: 'DELETE'
             });
 
+            const result = await response.json();
             if (!response.ok) {
-                throw new Error('Failed to delete user');
+                throw new Error(result.error || 'Failed to delete user');
             }
 
             setUsers(prev => prev.filter(user => user.id !== id));
             setIsDeleteDialogOpen(false);
             toast({
-                title: "User deleted successfully",
+                title: "Success",
+                description: "User deleted successfully",
                 status: "success",
                 duration: 3000,
                 isClosable: true,
@@ -478,25 +455,22 @@ export default function AdminDashboard() {
         }
     };
 
-    // Add this function to handle password viewing
     const handleViewPassword = async (userId) => {
         try {
             const response = await fetch('/api/admin/view-password', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ userId }),
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId })
             });
 
+            const result = await response.json();
             if (!response.ok) {
-                throw new Error('Failed to retrieve password');
+                throw new Error(result.error || 'Failed to retrieve password');
             }
 
-            const data = await response.json();
             setShowPassword(prev => ({
                 ...prev,
-                [userId]: data.password
+                [userId]: result.password
             }));
 
             // Auto-hide password after 10 seconds
@@ -506,11 +480,10 @@ export default function AdminDashboard() {
                     [userId]: null
                 }));
             }, 10000);
-
         } catch (error) {
             toast({
                 title: "Error",
-                description: "Failed to retrieve password",
+                description: error.message,
                 status: "error",
                 duration: 3000,
                 isClosable: true,

@@ -13,7 +13,11 @@ const pool = mysql.createPool({
 // Products operations
 export const getProducts = async () => {
     try {
-        const [rows] = await pool.execute('SELECT * FROM products');
+        const [rows] = await pool.execute(`
+            SELECT id, name, price, category, image, material, description, 
+                   size_s_stock, size_m_stock, size_l_stock, 
+                   created_at, updated_at 
+            FROM products`);
         return rows;
     } catch (error) {
         console.error('Error fetching products:', error);
@@ -66,7 +70,8 @@ export const updateProduct = async (id, data) => {
 export const getMySQLUserByEmail = async (email) => {
     try {
         const [rows] = await pool.execute(
-            'SELECT * FROM users WHERE email = ?',
+            `SELECT id, name, email, role, created_at, updated_at 
+             FROM users WHERE email = ?`,
             [email]
         );
         return rows[0] || null;

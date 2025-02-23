@@ -26,6 +26,11 @@ import {
     ModalHeader,
     ModalBody,
     ModalCloseButton,
+    Spinner,
+    Alert,
+    AlertIcon,
+    AlertTitle,
+    AlertDescription,
 } from '@chakra-ui/react';
 import { useSession } from 'next-auth/react';
 import Head from 'next/head';
@@ -36,6 +41,7 @@ import { formatDate } from '../utils/dateFormatter';
 
 const OrderCard = ({ order }) => {
     const { isOpen, onOpen, onClose } = useDisclosure();
+    const items = typeof order.items === 'string' ? JSON.parse(order.items) : order.items;
 
     return (
         <>
@@ -57,7 +63,7 @@ const OrderCard = ({ order }) => {
                     <VStack spacing={4} align="stretch">
                         <HStack justify="space-between">
                             <Text color="white" fontSize="sm">
-                                Order #{order.orderNumber || order.id}
+                                {order.orderNumber}
                             </Text>
                             <Badge
                                 colorScheme={
@@ -77,11 +83,11 @@ const OrderCard = ({ order }) => {
                                 {formatDate(order.createdAt)}
                             </Text>
                             <Text color="white" fontWeight="bold">
-                                ${(order.total || order.totalAmount).toFixed(2)}
+                                ${Number(order.total).toFixed(2)}
                             </Text>
                         </HStack>
                         <Text color="whiteAlpha.800" fontSize="sm">
-                            {JSON.parse(order.items || '[]').length} item{JSON.parse(order.items || '[]').length !== 1 ? 's' : ''}
+                            {items.length} item{items.length !== 1 ? 's' : ''}
                         </Text>
                     </VStack>
                 </CardBody>
@@ -91,7 +97,7 @@ const OrderCard = ({ order }) => {
             <Modal isOpen={isOpen} onClose={onClose} size="xl">
                 <ModalOverlay backdropFilter="blur(10px)" />
                 <ModalContent bg="gray.900" color="white">
-                    <ModalHeader>Order Details #{order.id}</ModalHeader>
+                    <ModalHeader>Order Details #{order.orderNumber}</ModalHeader>
                     <ModalCloseButton />
                     <ModalBody pb={6}>
                         <VStack spacing={6} align="stretch">
@@ -125,23 +131,25 @@ const OrderCard = ({ order }) => {
                                     </Tr>
                                 </Thead>
                                 <Tbody>
-                                    {JSON.parse(order.items || '[]').map((item, index) => (
+                                    {items.map((item, index) => (
                                         <Tr key={index}>
                                             <Td>
                                                 <HStack>
-                                                    <Image
-                                                        src={item.image}
-                                                        alt={item.name}
-                                                        boxSize="40px"
-                                                        objectFit="cover"
-                                                        borderRadius="md"
-                                                    />
-                                                    <Text>{item.name}</Text>
+                                                    {item.image && (
+                                                        <Image
+                                                            src={item.image}
+                                                            alt={item.name || `Product ${item.id}`}
+                                                            boxSize="40px"
+                                                            objectFit="cover"
+                                                            borderRadius="md"
+                                                        />
+                                                    )}
+                                                    <Text>{item.name || `Product ${item.id}`}</Text>
                                                 </HStack>
                                             </Td>
                                             <Td>{item.size}</Td>
                                             <Td isNumeric>{item.quantity}</Td>
-                                            <Td isNumeric>${(item.price * item.quantity).toFixed(2)}</Td>
+                                            <Td isNumeric>${Number(item.price).toFixed(2)}</Td>
                                         </Tr>
                                     ))}
                                 </Tbody>
@@ -149,12 +157,26 @@ const OrderCard = ({ order }) => {
 
                             <Divider borderColor="whiteAlpha.200" />
 
-                            <HStack justify="space-between">
-                                <Text fontWeight="bold">Total Amount:</Text>
-                                <Text fontWeight="bold">${(order.total || order.totalAmount).toFixed(2)}</Text>
-                            </HStack>
+                            <SimpleGrid columns={2} spacing={4}>
+                                <Box>
+                                    <Text color="whiteAlpha.600">Subtotal:</Text>
+                                    <Text>${Number(order.subtotal).toFixed(2)}</Text>
+                                </Box>
+                                <Box>
+                                    <Text color="whiteAlpha.600">Tax:</Text>
+                                    <Text>${Number(order.tax).toFixed(2)}</Text>
+                                </Box>
+                                <Box>
+                                    <Text color="whiteAlpha.600">Shipping:</Text>
+                                    <Text>${Number(order.shipping).toFixed(2)}</Text>
+                                </Box>
+                                <Box>
+                                    <Text color="whiteAlpha.600" fontWeight="bold">Total:</Text>
+                                    <Text fontWeight="bold">${Number(order.total).toFixed(2)}</Text>
+                                </Box>
+                            </SimpleGrid>
 
-                            {order.status === 'processing' && (
+                            {order.status === 'pending' && (
                                 <Button colorScheme="red" variant="outline">
                                     Cancel Order
                                 </Button>
@@ -171,17 +193,24 @@ export default function Orders() {
     const { data: session } = useSession();
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         const fetchOrders = async () => {
             try {
+                setLoading(true);
+                setError(null);
                 const response = await fetch('/api/orders/get-user-orders');
                 const data = await response.json();
-                if (response.ok) {
-                    setOrders(data.orders);
+                
+                if (!response.ok) {
+                    throw new Error(data.message || 'Failed to fetch orders');
                 }
+                
+                setOrders(data.orders || []);
             } catch (error) {
                 console.error('Error fetching orders:', error);
+                setError(error.message);
             } finally {
                 setLoading(false);
             }
@@ -199,10 +228,23 @@ export default function Orders() {
     if (loading) {
         return (
             <Box position="relative" minH="100vh" bg="black">
-                <Navbar />
-                <Container maxW="container.xl" py={12}>
-                    <Text color="white">Loading orders...</Text>
-                </Container>
+                <AnimatedBackground />
+                <Box position="relative" zIndex={1}>
+                    <Navbar />
+                    <Container maxW="container.xl" py={12}>
+                        <VStack spacing={8}>
+                            <Heading
+                                color="white"
+                                size="xl"
+                                bgGradient="linear(to-r, white, whiteAlpha.800)"
+                                bgClip="text"
+                            >
+                                My Orders
+                            </Heading>
+                            <Spinner size="xl" color="blue.500" />
+                        </VStack>
+                    </Container>
+                </Box>
             </Box>
         );
     }
@@ -240,10 +282,16 @@ export default function Orders() {
                                 </Text>
                             </Stack>
 
-                            {orders.length > 0 ? (
+                            {error ? (
+                                <Alert status="error" borderRadius="md" bg="red.900" color="white">
+                                    <AlertIcon />
+                                    <AlertTitle mr={2}>Error!</AlertTitle>
+                                    <AlertDescription>{error}</AlertDescription>
+                                </Alert>
+                            ) : orders.length > 0 ? (
                                 <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
                                     {orders.map((order) => (
-                                        <OrderCard key={order.id} order={order} />
+                                        <OrderCard key={order.orderNumber} order={order} />
                                     ))}
                                 </SimpleGrid>
                             ) : (

@@ -254,30 +254,39 @@ export default function Checkout() {
 
             // Proceed with order creation
             console.log('Making request to:', `${baseUrl}/api/orders/create`);
+            const orderNumber = generateOrderNumber();
             const response = await fetch(`${baseUrl}/api/orders/create`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
+                    orderNumber,
                     items: cartItems.map(item => ({
-                        product_id: item.product_id,
+                        id: item.product_id,
                         size: item.size,
                         quantity: item.quantity,
                         price: item.price
                     })),
-                    shipping_address: {
+                    shippingAddress: {
                         name: paymentData.cardHolder,
-                        address: 'Default Address', // You may want to add address fields to your form
+                        address: 'Default Address',
                         city: 'Default City',
                         state: 'Default State',
-                        postal_code: '12345'
+                        postalCode: '12345'
                     },
-                    payment: {
-                        cardholder_name: paymentData.cardHolder,
-                        card_last4: paymentData.cardNumber.slice(-4),
-                        expiry_date: paymentData.expiryDate,
-                        amount: getCartTotal()
+                    billingAddress: {
+                        name: paymentData.cardHolder,
+                        address: 'Default Address',
+                        city: 'Default City',
+                        state: 'Default State',
+                        postalCode: '12345'
+                    },
+                    paymentMethod: {
+                        type: 'credit_card',
+                        cardholderName: paymentData.cardHolder,
+                        cardLast4: paymentData.cardNumber.slice(-4),
+                        expiryDate: paymentData.expiryDate
                     },
                     subtotal: getCartTotal(),
                     tax: getCartTotal() * 0.07,
@@ -286,11 +295,10 @@ export default function Checkout() {
                 })
             });
 
-            const data = await response.json();
-            if (!data.success) {
-                setError(data.message || 'Failed to create order');
-                setIsProcessing(false);
-                return;
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Order creation error response:', errorText);
+                throw new Error(`Order creation failed: ${response.status} ${response.statusText}`);
             }
 
             // Clear cart and redirect to success page

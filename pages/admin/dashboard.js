@@ -39,6 +39,11 @@ import {
     AlertDialogHeader,
     AlertDialogContent,
     AlertDialogOverlay,
+    Spinner,
+    Alert,
+    AlertIcon,
+    AlertTitle,
+    AlertDescription,
 } from '@chakra-ui/react';
 import { EditIcon, DeleteIcon, AddIcon } from '@chakra-ui/icons';
 import Head from 'next/head';
@@ -266,14 +271,15 @@ const OrdersPanel = ({ orders, onUpdateStatus, onDeleteOrder }) => {
 export default function AdminDashboard() {
     const [products, setProducts] = useState([]);
     const [users, setUsers] = useState([]);
+    const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [selectedItem, setSelectedItem] = useState(null);
     const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
     const [itemToDelete, setItemToDelete] = useState(null);
     const cancelRef = useRef();
     const toast = useToast();
     const [showPassword, setShowPassword] = useState({});
-    const [orders, setOrders] = useState([]);
 
     const {
         isOpen: isProductModalOpen,
@@ -292,30 +298,55 @@ export default function AdminDashboard() {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const [productsRes, usersRes, ordersRes] = await Promise.all([
-                    fetch('/api/admin/products'),
-                    fetch('/api/admin/users'),
-                    fetch('/api/admin/orders')
+                setError(null);
+
+                console.log('Fetching admin dashboard data...');
+
+                // Fetch all data in parallel
+                const responses = await Promise.all([
+                    fetch('/api/admin/products').then(async (res) => {
+                        if (!res.ok) {
+                            const error = await res.text();
+                            throw new Error(`Products API error: ${error}`);
+                        }
+                        return res.json();
+                    }),
+                    fetch('/api/admin/users').then(async (res) => {
+                        if (!res.ok) {
+                            const error = await res.text();
+                            throw new Error(`Users API error: ${error}`);
+                        }
+                        return res.json();
+                    }),
+                    fetch('/api/admin/orders').then(async (res) => {
+                        if (!res.ok) {
+                            const error = await res.text();
+                            throw new Error(`Orders API error: ${error}`);
+                        }
+                        return res.json();
+                    })
                 ]);
 
-                if (!productsRes.ok || !usersRes.ok || !ordersRes.ok) {
-                    throw new Error('Failed to fetch data');
-                }
+                const [productsData, usersData, ordersData] = responses;
 
-                const productsData = await productsRes.json();
-                const usersData = await usersRes.json();
-                const ordersData = await ordersRes.json();
+                console.log('Data fetched successfully:', {
+                    products: productsData?.data?.length || 0,
+                    users: usersData?.data?.length || 0,
+                    orders: ordersData?.data?.length || 0
+                });
 
-                setProducts(productsData.data || []);
-                setUsers(usersData.data || []);
-                setOrders(ordersData.data || []);
+                setProducts(productsData?.data || []);
+                setUsers(usersData?.data || []);
+                setOrders(ordersData?.data || []);
+
             } catch (error) {
-                console.error('Error fetching data:', error);
+                console.error('Error fetching dashboard data:', error);
+                setError(error.message);
                 toast({
-                    title: "Error",
-                    description: "Failed to load data",
+                    title: "Error loading data",
+                    description: error.message,
                     status: "error",
-                    duration: 3000,
+                    duration: 5000,
                     isClosable: true,
                 });
             } finally {
@@ -325,6 +356,55 @@ export default function AdminDashboard() {
 
         fetchData();
     }, [toast]);
+
+    // Show loading state
+    if (loading) {
+        return (
+            <Box minH="100vh" position="relative">
+                <AnimatedBackground />
+                <Box position="relative" zIndex={1}>
+                    <Navbar />
+                    <Container maxW="container.xl" py={8}>
+                        <VStack spacing={8}>
+                            <Heading color="white">Admin Dashboard</Heading>
+                            <Spinner size="xl" color="blue.500" />
+                            <Text color="white">Loading dashboard data...</Text>
+                        </VStack>
+                    </Container>
+                </Box>
+            </Box>
+        );
+    }
+
+    // Show error state
+    if (error) {
+        return (
+            <Box minH="100vh" position="relative">
+                <AnimatedBackground />
+                <Box position="relative" zIndex={1}>
+                    <Navbar />
+                    <Container maxW="container.xl" py={8}>
+                        <VStack spacing={8}>
+                            <Heading color="white">Admin Dashboard</Heading>
+                            <Alert status="error" variant="solid" borderRadius="md">
+                                <AlertIcon />
+                                <Box>
+                                    <AlertTitle>Error loading dashboard</AlertTitle>
+                                    <AlertDescription>{error}</AlertDescription>
+                                </Box>
+                            </Alert>
+                            <Button
+                                colorScheme="blue"
+                                onClick={() => window.location.reload()}
+                            >
+                                Retry Loading
+                            </Button>
+                        </VStack>
+                    </Container>
+                </Box>
+            </Box>
+        );
+    }
 
     // Product Management Functions
     const handleAddProduct = async (productData) => {

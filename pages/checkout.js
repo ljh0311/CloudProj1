@@ -221,21 +221,27 @@ export default function Checkout() {
             const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
             const stockCheckUrl = baseUrl ? `${baseUrl}/api/products/check-stock` : '/api/products/check-stock';
             console.log('Making request to:', stockCheckUrl);
+            
+            const requestPayload = {
+                items: cartItems.map(item => ({
+                    product_id: item.product_id,
+                    size: item.size,
+                    quantity: item.quantity
+                }))
+            };
+            console.log('Request payload:', JSON.stringify(requestPayload, null, 2));
+            
             const stockCheckResponse = await fetch(stockCheckUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    items: cartItems.map(item => ({
-                        id: item.product_id,
-                        size: item.size,
-                        quantity: item.quantity
-                    }))
-                })
+                body: JSON.stringify(requestPayload)
             });
 
             if (!stockCheckResponse.ok) {
+                const errorText = await stockCheckResponse.text();
+                console.error('Stock check error response:', errorText);
                 throw new Error(`Stock check failed: ${stockCheckResponse.status} ${stockCheckResponse.statusText}`);
             }
 

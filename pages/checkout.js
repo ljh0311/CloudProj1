@@ -33,25 +33,21 @@ import Navbar from '../components/Navbar';
 import AnimatedBackground from '../components/AnimatedBackground';
 import { useCart } from '../components/CartContext';
 
-// Detect card type based on first digit and length
+// Detect card type based on first digit
 const getCardType = (number) => {
     if (!number) return { type: '', color: 'gray' };
     
-    const patterns = {
-        visa: /^4[0-9]{12}(?:[0-9]{3})?$/,
-        mastercard: /^5[1-5][0-9]{14}$/,
-        amex: /^3[47][0-9]{13}$/
-    };
-
-    for (const [type, pattern] of Object.entries(patterns)) {
-        if (pattern.test(number)) {
-            return {
-                type: type.charAt(0).toUpperCase() + type.slice(1),
-                color: type === 'visa' ? 'blue' : type === 'mastercard' ? 'red' : 'green'
-            };
-        }
+    const firstDigit = number.charAt(0);
+    switch (firstDigit) {
+        case '4':
+            return { type: 'Visa', color: 'blue' };
+        case '5':
+            return { type: 'Mastercard', color: 'red' };
+        case '6':
+            return { type: 'AMEX', color: 'green' };
+        default:
+            return { type: 'Unknown', color: 'gray' };
     }
-    return { type: 'Unknown', color: 'gray' };
 };
 
 // Generate unique order number
@@ -126,34 +122,11 @@ export default function Checkout() {
     const validateForm = () => {
         const newErrors = {};
         
-        // Card number validation with Luhn algorithm
-        const isValidLuhn = (number) => {
-            let sum = 0;
-            let isEven = false;
-            
-            // Loop through values starting from the rightmost digit
-            for (let i = number.length - 1; i >= 0; i--) {
-                let digit = parseInt(number.charAt(i), 10);
-                
-                if (isEven) {
-                    digit *= 2;
-                    if (digit > 9) {
-                        digit -= 9;
-                    }
-                }
-                
-                sum += digit;
-                isEven = !isEven;
-            }
-            
-            return sum % 10 === 0;
-        };
-
-        // Card number validation
-        if (!paymentData.cardNumber || paymentData.cardNumber.length < 15) {
-            newErrors.cardNumber = 'Card number must be at least 15 digits';
-        } else if (!isValidLuhn(paymentData.cardNumber)) {
-            newErrors.cardNumber = 'Invalid card number';
+        // Card number validation (only check first digit and length)
+        if (!paymentData.cardNumber || paymentData.cardNumber.length !== 16) {
+            newErrors.cardNumber = 'Card number must be 16 digits';
+        } else if (!['4', '5', '6'].includes(paymentData.cardNumber.charAt(0))) {
+            newErrors.cardNumber = 'Card type not supported';
         }
 
         // Card holder validation

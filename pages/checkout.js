@@ -252,6 +252,16 @@ export default function Checkout() {
             // Generate unique order number
             const orderNumber = generateOrderNumber();
 
+            // Prepare shipping and billing addresses
+            const shippingAddress = {
+                name: paymentData.cardHolder,
+                address: "Default Address",
+                city: "Default City",
+                state: "Default State",
+                zipCode: "12345",
+                country: "Default Country"
+            };
+
             // Create order
             const response = await fetch('/api/orders/create', {
                 method: 'POST',
@@ -269,17 +279,19 @@ export default function Checkout() {
                         size: item.size,
                         image: item.image
                     })),
-                    subtotal: orderSummary.subtotal,
-                    tax: orderSummary.tax,
-                    shipping: orderSummary.shipping,
-                    total: orderSummary.total,
+                    subtotal: parseFloat(orderSummary.subtotal.toFixed(2)),
+                    tax: parseFloat(orderSummary.tax.toFixed(2)),
+                    shipping: parseFloat(orderSummary.shipping.toFixed(2)),
+                    total: parseFloat(orderSummary.total.toFixed(2)),
                     status: 'pending',
                     shippingAddress,
                     billingAddress: shippingAddress,
                     paymentMethod: {
                         type: cardType.type.toLowerCase(),
                         status: 'completed',
-                        lastFour: paymentData.cardNumber.slice(-4)
+                        lastFour: paymentData.cardNumber.slice(-4),
+                        cardHolder: paymentData.cardHolder,
+                        expiryDate: paymentData.expiryDate
                     }
                 })
             });

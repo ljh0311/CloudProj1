@@ -19,11 +19,27 @@ export default async function handler(req, res) {
         const connection = await pool.getConnection();
         try {
             for (const item of items) {
+                // Validate size format
+                const size = item.size.toLowerCase();
+                if (!['s', 'm', 'l'].includes(size)) {
+                    return res.status(400).json({
+                        available: false,
+                        message: `Invalid size: ${item.size}. Must be S, M, or L`
+                    });
+                }
+
+                // Use prepared statement to prevent SQL injection
                 const [stockResult] = await connection.execute(
-                    `SELECT size_${item.size.toLowerCase()}_stock as stock
-                     FROM products 
-                     WHERE id = ?`,
-                    [item.id]
+                    `SELECT 
+                        CASE 
+                            WHEN ? = 's' THEN size_s_stock
+                            WHEN ? = 'm' THEN size_m_stock
+                            WHEN ? = 'l' THEN size_l_stock
+                        END as stock,
+                        name
+                    FROM products 
+                    WHERE id = ?`,
+                    [size, size, size, item.id]
                 );
 
                 if (stockResult.length === 0) {
@@ -34,12 +50,21 @@ export default async function handler(req, res) {
                 }
 
                 const currentStock = stockResult[0].stock;
+                if (currentStock === null) {
+                    return res.status(400).json({
+                        available: false,
+                        message: `Invalid size ${item.size} for product ${item.id}`
+                    });
+                }
+
                 if (currentStock < item.quantity) {
                     return res.status(200).json({
                         available: false,
-                        message: `Insufficient stock for product ${item.id} size ${item.size}`
+                        message: `Insufficient stock for ${stockResult[0].name} (Size ${item.size.toUpperCase()}). Available: ${currentStock}, Requested: ${item.quantity}`
                     });
                 }
+
+                console.log(`Stock check passed for product ${item.id} size ${size}: ${currentStock} >= ${item.quantity}`);
             }
 
             // If we get here, all items are available

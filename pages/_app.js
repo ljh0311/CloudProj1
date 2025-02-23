@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import PageTransition from '../components/PageTransition'
 import { SessionProvider } from 'next-auth/react'
 import { CartProvider } from '../components/CartContext'
+import Head from 'next/head'
 
 function MyApp({ Component, pageProps: { session, ...pageProps } }) {
     const router = useRouter()
@@ -39,6 +40,11 @@ function MyApp({ Component, pageProps: { session, ...pageProps } }) {
         >
             <ChakraProvider>
                 <CartProvider>
+                    <Head>
+                        <title>KAPPY - Vintage Streetwear</title>
+                        <meta name="description" content="KAPPY - Your destination for vintage streetwear" />
+                        <link rel="icon" href="/favicon.ico" />
+                    </Head>
                     <PageTransition>
                         {isClient && <Component {...pageProps} />}
                     </PageTransition>

@@ -1,153 +1,136 @@
-import { getSession } from 'next-auth/react';
-import mysql from 'mysql2/promise';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '../auth/[...nextauth]';
+import { pool } from '../../../lib/mysql';
 import bcrypt from 'bcryptjs';
 
-const pool = mysql.createPool({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
-});
-
 export default async function handler(req, res) {
-    const session = await getSession({ req });
+    try {
+        const session = await getServerSession(req, res, authOptions);
+        
+        if (!session || session.user.role !== 'admin') {
+            return res.status(401).json({ success: false, error: 'Unauthorized' });
+        }
 
-    if (!session || session.user.role !== 'admin') {
-        return res.status(403).json({ error: 'Not authorized' });
-    }
-
-    switch (req.method) {
-        case 'GET':
-            try {
+        switch (req.method) {
+            case 'GET':
+                // Get all users
                 const [users] = await pool.execute(
-                    'SELECT id, name, email, role, created_at, updated_at FROM users'
+                    `SELECT id, name, email, role, created_at, updated_at
+                     FROM users
+                     ORDER BY created_at DESC`
                 );
-                res.status(200).json(users);
-            } catch (error) {
-                console.error('Error fetching users:', error);
-                res.status(500).json({ error: 'Failed to fetch users' });
-            }
-            break;
+                return res.status(200).json({ success: true, data: users });
 
-        case 'POST':
-            try {
-                const { name, email, password, role = 'customer' } = req.body;
-
-                // Check if user already exists
-                const [existingUsers] = await pool.execute(
-                    'SELECT id FROM users WHERE email = ?',
-                    [email]
-                );
-
-                if (existingUsers.length > 0) {
-                    return res.status(400).json({ error: 'Email already exists' });
-                }
-
-                // Hash password
-                const hashedPassword = await bcrypt.hash(password, 10);
-
-                // Create user
+            case 'POST':
+                // Create new user
+                const newUser = req.body;
+                const hashedPassword = await bcrypt.hash(newUser.password, 10);
+                
                 const [result] = await pool.execute(
-                    'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
-                    [name, email, hashedPassword, role]
+                    `INSERT INTO users (name, email, password, role)
+                     VALUES (?, ?, ?, ?)`,
+                    [
+                        newUser.name,
+                        newUser.email,
+                        hashedPassword,
+                        newUser.role || 'customer'
+                    ]
                 );
-
-                const [newUser] = await pool.execute(
+                
+                const [createdUser] = await pool.execute(
                     'SELECT id, name, email, role, created_at, updated_at FROM users WHERE id = ?',
                     [result.insertId]
                 );
+                
+                return res.status(201).json({ 
+                    success: true, 
+                    data: createdUser[0]
+                });
 
-                res.status(201).json(newUser[0]);
-            } catch (error) {
-                console.error('Error creating user:', error);
-                res.status(500).json({ error: 'Failed to create user' });
-            }
-            break;
+            case 'PUT':
+                // Update user
+                const updateUser = req.body;
+                const updates = [];
+                const values = [];
 
-        case 'PUT':
-            try {
-                const { id } = req.query;
-                const updates = req.body;
-
-                // If password is being updated, hash it
-                if (updates.password) {
-                    updates.password = await bcrypt.hash(updates.password, 10);
+                if (updateUser.name) {
+                    updates.push('name = ?');
+                    values.push(updateUser.name);
+                }
+                if (updateUser.email) {
+                    updates.push('email = ?');
+                    values.push(updateUser.email);
+                }
+                if (updateUser.password) {
+                    updates.push('password = ?');
+                    values.push(await bcrypt.hash(updateUser.password, 10));
+                }
+                if (updateUser.role) {
+                    updates.push('role = ?');
+                    values.push(updateUser.role);
                 }
 
-                const fields = Object.keys(updates)
-                    .filter(key => key !== 'id')
-                    .map(key => `${key} = ?`)
-                    .join(', ');
+                if (updates.length === 0) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'No fields to update'
+                    });
+                }
 
-                const values = Object.keys(updates)
-                    .filter(key => key !== 'id')
-                    .map(key => updates[key]);
-
-                const [result] = await pool.execute(
-                    `UPDATE users SET ${fields} WHERE id = ?`,
-                    [...values, id]
+                values.push(updateUser.id);
+                await pool.execute(
+                    `UPDATE users 
+                     SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP
+                     WHERE id = ?`,
+                    values
                 );
-
-                if (result.affectedRows === 0) {
-                    return res.status(404).json({ error: 'User not found' });
-                }
 
                 const [updatedUser] = await pool.execute(
                     'SELECT id, name, email, role, created_at, updated_at FROM users WHERE id = ?',
-                    [id]
+                    [updateUser.id]
                 );
 
-                res.status(200).json(updatedUser[0]);
-            } catch (error) {
-                console.error('Error updating user:', error);
-                res.status(500).json({ error: 'Failed to update user' });
-            }
-            break;
+                return res.status(200).json({
+                    success: true,
+                    data: updatedUser[0]
+                });
 
-        case 'DELETE':
-            try {
+            case 'DELETE':
+                // Delete user
                 const { id } = req.query;
-
-                // Check if user exists
-                const [existingUser] = await pool.execute(
+                
+                // Don't allow deleting the last admin
+                const [adminCount] = await pool.execute(
+                    'SELECT COUNT(*) as count FROM users WHERE role = "admin"'
+                );
+                const [userToDelete] = await pool.execute(
                     'SELECT role FROM users WHERE id = ?',
                     [id]
                 );
 
-                if (existingUser.length === 0) {
-                    return res.status(404).json({ error: 'User not found' });
+                if (adminCount[0].count === 1 && userToDelete[0]?.role === 'admin') {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'Cannot delete the last admin user'
+                    });
                 }
 
-                // Prevent deleting the last admin
-                if (existingUser[0].role === 'admin') {
-                    const [adminCount] = await pool.execute(
-                        'SELECT COUNT(*) as count FROM users WHERE role = "admin"'
-                    );
-                    
-                    if (adminCount[0].count <= 1) {
-                        return res.status(400).json({
-                            error: 'Cannot delete the last admin user'
-                        });
-                    }
-                }
+                await pool.execute('DELETE FROM users WHERE id = ?', [id]);
+                return res.status(200).json({ success: true });
 
-                const [result] = await pool.execute(
-                    'DELETE FROM users WHERE id = ?',
-                    [id]
-                );
-
-                res.status(200).json({ message: 'User deleted successfully' });
-            } catch (error) {
-                console.error('Error deleting user:', error);
-                res.status(500).json({ error: 'Failed to delete user' });
-            }
-            break;
-
-        default:
-            res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
-            res.status(405).json({ error: `Method ${req.method} not allowed` });
+            default:
+                res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
+                return res.status(405).json({ 
+                    success: false, 
+                    error: `Method ${req.method} Not Allowed` 
+                });
+        }
+    } catch (error) {
+        console.error('User management error:', error);
+        return res.status(500).json({ 
+            success: false, 
+            error: 'Internal server error',
+            details: error.message
+        });
     }
 } 

@@ -225,8 +225,8 @@ export default function AdminDashboard() {
             try {
                 setLoading(true);
                 const [productsRes, usersRes] = await Promise.all([
-                    fetch('/api/admin/getData?type=products'),
-                    fetch('/api/admin/getData?type=users')
+                    fetch('/api/admin/products'),
+                    fetch('/api/admin/users')
                 ]);
 
                 if (!productsRes.ok || !usersRes.ok) {
@@ -236,8 +236,8 @@ export default function AdminDashboard() {
                 const productsData = await productsRes.json();
                 const usersData = await usersRes.json();
 
-                setProducts(productsData.products || []);
-                setUsers(usersData.users || []);
+                setProducts(productsData.data || []);
+                setUsers(usersData.data || []);
             } catch (error) {
                 console.error('Error fetching data:', error);
                 toast({
@@ -288,104 +288,194 @@ export default function AdminDashboard() {
 
     // Product Management Functions
     const handleAddProduct = async (productData) => {
-        const newProduct = {
-            ...productData,
-            id: products.length + 1,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString()
-        };
-        const updatedProducts = [...products, newProduct];
-        setProducts(updatedProducts);
-        await updateData('products', updatedProducts);
-        onProductModalClose();
-        toast({
-            title: "Product added successfully",
-            status: "success",
-            duration: 3000,
-            isClosable: true,
-        });
+        try {
+            const response = await fetch('/api/admin/products', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(productData)
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to add product');
+            }
+
+            const result = await response.json();
+            setProducts(prev => [...prev, result.data]);
+            onProductModalClose();
+            toast({
+                title: "Product added successfully",
+                status: "success",
+                duration: 3000,
+                isClosable: true,
+            });
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: error.message,
+                status: "error",
+                duration: 3000,
+                isClosable: true,
+            });
+        }
     };
 
     const handleUpdateProduct = async (productData) => {
-        const updatedProducts = products.map(product =>
-            product.id === selectedItem.id
-                ? { ...product, ...productData, updatedAt: new Date().toISOString() }
-                : product
-        );
-        setProducts(updatedProducts);
-        await updateData('products', updatedProducts);
-        onProductModalClose();
-        toast({
-            title: "Product updated successfully",
-            status: "success",
-            duration: 3000,
-            isClosable: true,
-        });
+        try {
+            const response = await fetch('/api/admin/products', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...productData, id: selectedItem.id })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to update product');
+            }
+
+            const result = await response.json();
+            setProducts(prev => prev.map(product => 
+                product.id === selectedItem.id ? result.data : product
+            ));
+            onProductModalClose();
+            toast({
+                title: "Product updated successfully",
+                status: "success",
+                duration: 3000,
+                isClosable: true,
+            });
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: error.message,
+                status: "error",
+                duration: 3000,
+                isClosable: true,
+            });
+        }
     };
 
     const handleDeleteProduct = async (id) => {
-        const updatedProducts = products.filter(product => product.id !== id);
-        setProducts(updatedProducts);
-        await updateData('products', updatedProducts);
-        setIsDeleteDialogOpen(false);
-        toast({
-            title: "Product deleted successfully",
-            status: "success",
-            duration: 3000,
-            isClosable: true,
-        });
+        try {
+            const response = await fetch(`/api/admin/products?id=${id}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to delete product');
+            }
+
+            setProducts(prev => prev.filter(product => product.id !== id));
+            setIsDeleteDialogOpen(false);
+            toast({
+                title: "Product deleted successfully",
+                status: "success",
+                duration: 3000,
+                isClosable: true,
+            });
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: error.message,
+                status: "error",
+                duration: 3000,
+                isClosable: true,
+            });
+        }
     };
 
     // User Management Functions
     const handleAddUser = async (userData) => {
-        const newUser = {
-            ...userData,
-            id: users.length + 1,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-            orders: [],
-            cart: []
-        };
-        const updatedUsers = [...users, newUser];
-        setUsers(updatedUsers);
-        await updateData('users', updatedUsers);
-        onUserModalClose();
-        toast({
-            title: "User added successfully",
-            status: "success",
-            duration: 3000,
-            isClosable: true,
-        });
+        try {
+            const response = await fetch('/api/admin/users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(userData)
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to add user');
+            }
+
+            const result = await response.json();
+            setUsers(prev => [...prev, result.data]);
+            onUserModalClose();
+            toast({
+                title: "User added successfully",
+                status: "success",
+                duration: 3000,
+                isClosable: true,
+            });
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: error.message,
+                status: "error",
+                duration: 3000,
+                isClosable: true,
+            });
+        }
     };
 
     const handleUpdateUser = async (userData) => {
-        const updatedUsers = users.map(user =>
-            user.id === selectedItem.id
-                ? { ...user, ...userData, updatedAt: new Date().toISOString() }
-                : user
-        );
-        setUsers(updatedUsers);
-        await updateData('users', updatedUsers);
-        onUserModalClose();
-        toast({
-            title: "User updated successfully",
-            status: "success",
-            duration: 3000,
-            isClosable: true,
-        });
+        try {
+            const response = await fetch('/api/admin/users', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...userData, id: selectedItem.id })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to update user');
+            }
+
+            const result = await response.json();
+            setUsers(prev => prev.map(user => 
+                user.id === selectedItem.id ? result.data : user
+            ));
+            onUserModalClose();
+            toast({
+                title: "User updated successfully",
+                status: "success",
+                duration: 3000,
+                isClosable: true,
+            });
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: error.message,
+                status: "error",
+                duration: 3000,
+                isClosable: true,
+            });
+        }
     };
 
     const handleDeleteUser = async (id) => {
-        const updatedUsers = users.filter(user => user.id !== id);
-        setUsers(updatedUsers);
-        await updateData('users', updatedUsers);
-        setIsDeleteDialogOpen(false);
-        toast({
-            title: "User deleted successfully",
-            status: "success",
-            duration: 3000,
-            isClosable: true,
-        });
+        try {
+            const response = await fetch(`/api/admin/users?id=${id}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to delete user');
+            }
+
+            setUsers(prev => prev.filter(user => user.id !== id));
+            setIsDeleteDialogOpen(false);
+            toast({
+                title: "User deleted successfully",
+                status: "success",
+                duration: 3000,
+                isClosable: true,
+            });
+        } catch (error) {
+            toast({
+                title: "Error",
+                description: error.message,
+                status: "error",
+                duration: 3000,
+                isClosable: true,
+            });
+        }
     };
 
     // Add this function to handle password viewing

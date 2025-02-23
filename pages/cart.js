@@ -49,22 +49,28 @@ const CartItem = ({ item, onUpdateQuantity, onRemove }) => (
             </VStack>
             <HStack>
                 <IconButton
+                    aria-label="Decrease quantity"
                     icon={<MinusIcon />}
-                    onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
+                    onClick={() => onUpdateQuantity(item.cartItemId, item.quantity - 1)}
                     isDisabled={item.quantity <= 1}
+                    colorScheme="blue"
                     variant="ghost"
                     color="white"
                     _hover={{ bg: 'whiteAlpha.200' }}
+                    _active={{ bg: 'whiteAlpha.300' }}
                 />
                 <Text color="white" fontSize="lg" fontWeight="bold" minW="40px" textAlign="center">
                     {item.quantity}
                 </Text>
                 <IconButton
+                    aria-label="Increase quantity"
                     icon={<AddIcon />}
-                    onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
+                    onClick={() => onUpdateQuantity(item.cartItemId, item.quantity + 1)}
+                    colorScheme="blue"
                     variant="ghost"
                     color="white"
                     _hover={{ bg: 'whiteAlpha.200' }}
+                    _active={{ bg: 'whiteAlpha.300' }}
                 />
             </HStack>
             <HStack justify="space-between" w="100%">
@@ -72,11 +78,13 @@ const CartItem = ({ item, onUpdateQuantity, onRemove }) => (
                     ${(item.price * item.quantity).toFixed(2)}
                 </Text>
                 <IconButton
+                    aria-label="Remove item"
                     icon={<DeleteIcon />}
-                    onClick={() => onRemove(item.id)}
+                    onClick={() => onRemove(item.cartItemId)}
+                    colorScheme="red"
                     variant="ghost"
-                    color="red.400"
-                    _hover={{ bg: 'whiteAlpha.200', color: 'red.300' }}
+                    _hover={{ bg: 'whiteAlpha.200' }}
+                    _active={{ bg: 'whiteAlpha.300' }}
                 />
             </HStack>
         </SimpleGrid>
@@ -89,6 +97,16 @@ export default function Cart() {
     const { cartItems, removeFromCart, updateQuantity, getCartTotal } = useCart();
 
     const handleCheckout = () => {
+        if (cartItems.length === 0) {
+            toast({
+                title: "Cart is empty",
+                description: "Please add items to your cart before checking out.",
+                status: "warning",
+                duration: 3000,
+                isClosable: true,
+            });
+            return;
+        }
         router.push('/checkout');
     };
 
@@ -125,12 +143,10 @@ export default function Cart() {
                                     <Button
                                         onClick={() => router.push('/shop')}
                                         size="lg"
-                                        bg="white"
-                                        color="black"
+                                        colorScheme="blue"
                                         _hover={{
                                             transform: 'translateY(-2px)',
                                             boxShadow: 'lg',
-                                            bg: 'whiteAlpha.800'
                                         }}
                                     >
                                         Continue Shopping
@@ -141,7 +157,7 @@ export default function Cart() {
                                     <VStack spacing={4}>
                                         {cartItems.map(item => (
                                             <CartItem
-                                                key={item.id}
+                                                key={item.cartItemId}
                                                 item={item}
                                                 onUpdateQuantity={updateQuantity}
                                                 onRemove={removeFromCart}
@@ -168,12 +184,10 @@ export default function Cart() {
                                         <Button
                                             w="100%"
                                             size="lg"
-                                            bg="white"
-                                            color="black"
+                                            colorScheme="blue"
                                             _hover={{
                                                 transform: 'translateY(-2px)',
                                                 boxShadow: 'lg',
-                                                bg: 'whiteAlpha.800'
                                             }}
                                             onClick={handleCheckout}
                                         >

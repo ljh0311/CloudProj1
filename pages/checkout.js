@@ -179,17 +179,19 @@ export default function Checkout() {
         try {
             // Calculate order totals
             const subtotal = getCartTotal();
-            const tax = subtotal * 0.07; // 7% tax
+            const tax = parseFloat((subtotal * 0.07).toFixed(2)); // 7% tax
             const shipping = subtotal > 100 ? 0 : 10; // Free shipping over $100
-            const total = subtotal + tax + shipping;
+            const total = parseFloat((subtotal + tax + shipping).toFixed(2));
 
-            console.log('Sending order request with data:', {
-                subtotal,
-                tax,
-                shipping,
-                total,
-                itemsCount: cartItems.length
-            });
+            // Prepare shipping and billing addresses
+            const shippingAddress = {
+                name: paymentData.cardHolder,
+                address: "Default Address", // You can add proper address fields later
+                city: "Default City",
+                state: "Default State",
+                zipCode: "12345",
+                country: "Default Country"
+            };
 
             // Create order
             const response = await fetch('/api/orders/create', {
@@ -201,31 +203,32 @@ export default function Checkout() {
                     items: cartItems.map(item => ({
                         id: item.id,
                         name: item.name,
-                        price: item.price,
-                        quantity: item.quantity,
+                        price: parseFloat(item.price),
+                        quantity: parseInt(item.quantity),
                         size: item.size,
                         image: item.image
                     })),
-                    subtotal: subtotal,
+                    subtotal: parseFloat(subtotal.toFixed(2)),
                     tax: tax,
                     shipping: shipping,
                     total: total,
                     status: 'pending',
-                    shipping_address: {},
-                    billing_address: {},
+                    shipping_address: shippingAddress,
+                    billing_address: shippingAddress, // Using same address for billing
                     payment_method: {
                         type: 'card',
-                        status: 'completed'
+                        status: 'completed',
+                        cardType: cardType.type,
+                        lastFour: paymentData.cardNumber.slice(-4)
                     }
                 }),
                 credentials: 'include'
             });
 
             const data = await response.json();
-            console.log('Order API response:', data);
 
             if (!response.ok) {
-                throw new Error(data.error || `Failed to create order: ${response.status} ${response.statusText}`);
+                throw new Error(data.error || 'Failed to create order');
             }
 
             if (!data.success) {

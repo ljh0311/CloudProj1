@@ -228,7 +228,7 @@ export default function Checkout() {
                 },
                 body: JSON.stringify({
                     items: cartItems.map(item => ({
-                        product_id: item.product_id,
+                        id: item.product_id,
                         size: item.size,
                         quantity: item.quantity
                     }))

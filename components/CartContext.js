@@ -56,7 +56,7 @@ export function CartProvider({ children }) {
                     product_id: product.id,
                     name: product.name,
                     price: Number(product.price),
-                    image: product.image || '/placeholder-product.jpg',
+                    image: product.image || '/images/demoProduct.jpg',
                     size: size,
                     quantity: 1,
                     material: product.material || 'N/A'

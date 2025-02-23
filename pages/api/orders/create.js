@@ -1,106 +1,58 @@
-import { getServerSession } from 'next-auth';
-import { authOptions } from '../auth/[...nextauth]';
+import { getSession } from 'next-auth/react';
+import { pool, executeQuery } from '../../../lib/mysql';
 import { createOrder } from '../../../lib/db-service';
-import { pool } from '../../../lib/db-service';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
-        return res.status(405).json({ message: 'Method not allowed' });
+        return res.status(405).json({ error: 'Method not allowed' });
     }
 
     try {
-        const session = await getServerSession(req, res, authOptions);
-        
+        const session = await getSession({ req });
         if (!session) {
-            return res.status(401).json({ message: 'Not authenticated' });
+            return res.status(401).json({ error: 'Unauthorized' });
         }
 
-        // Log session data for debugging
-        console.log('Session data:', { 
+        console.log('Session data:', {
+            user: session.user,
             userId: session.user.id,
-            email: session.user.email,
-            user: session.user
+            email: session.user.email
         });
-
-        const { items, subtotal, tax, shipping, total, status, shipping_address, billing_address, payment_method } = req.body;
-        console.log('Order request data:', { 
-            itemsCount: items?.length,
-            total,
-            status
-        });
-
-        if (!items || !total) {
-            return res.status(400).json({ message: 'Missing required fields' });
-        }
 
         // Verify user exists in database
-        const [userExists] = await pool.execute(
+        const userResult = await executeQuery(
             'SELECT id FROM users WHERE id = ?',
             [session.user.id]
         );
 
-        if (!userExists || userExists.length === 0) {
-            console.error('User not found in database:', session.user.id);
-            return res.status(400).json({ 
-                success: false,
-                error: 'Invalid user account'
-            });
+        if (!userResult.success) {
+            console.error('Database error during user verification:', userResult.error);
+            return res.status(500).json({ error: 'Database error during user verification' });
         }
 
-        // Create order in database
+        if (userResult.data.length === 0) {
+            console.error('User not found in database:', session.user.id);
+            return res.status(400).json({ error: `User not found: ${session.user.id}` });
+        }
+
+        // Process the order
         const orderData = {
-            userId: session.user.id,
-            orderNumber: `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-            items: items.map(item => ({
-                id: item.id,
-                name: item.name,
-                price: item.price,
-                quantity: item.quantity,
-                size: item.size,
-                image: item.image
-            })),
-            subtotal,
-            tax,
-            shipping,
-            total,
-            status: status || 'pending',
-            shippingAddress: shipping_address || {},
-            billingAddress: billing_address || {},
-            paymentMethod: payment_method || {
-                type: 'card',
-                status: 'completed'
-            },
-            notes: ''
+            ...req.body,
+            userId: session.user.id
         };
 
-        console.log('Creating order with data:', {
-            orderNumber: orderData.orderNumber,
-            userId: orderData.userId,
-            total: orderData.total,
-            itemsCount: orderData.items.length
-        });
+        console.log('Processing order with data:', orderData);
 
         const result = await createOrder(orderData);
-
+        
         if (!result.success) {
-            console.error('Failed to create order:', result.error);
-            throw new Error(result.error || 'Failed to create order');
+            console.error('Order creation failed:', result.error);
+            return res.status(500).json({ error: `Payment processing error: ${result.error}` });
         }
 
-        console.log('Order created successfully:', {
-            id: result.data.id,
-            orderNumber: result.data.orderNumber
-        });
-
-        res.status(201).json({
-            success: true,
-            order: result.data
-        });
+        return res.status(200).json(result.data);
     } catch (error) {
-        console.error('Error in order creation:', error);
-        res.status(500).json({ 
-            success: false,
-            error: error.message 
-        });
+        console.error('Order creation error:', error);
+        return res.status(500).json({ error: `Payment processing error: ${error.message}` });
     }
 } 

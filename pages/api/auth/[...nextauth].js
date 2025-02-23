@@ -68,8 +68,19 @@ export const authOptions = {
         error: '/auth',
     },
     debug: process.env.NODE_ENV === 'development',
-    secret: process.env.NEXTAUTH_SECRET,
-    trustHost: true
+    secret: process.env.NEXTAUTH_SECRET || 'your-fallback-secret-key-change-this',
+    trustHost: true,
+    cookies: {
+        sessionToken: {
+            name: `next-auth.session-token`,
+            options: {
+                httpOnly: true,
+                sameSite: 'lax',
+                path: '/',
+                secure: false // Set to false when not using HTTPS
+            }
+        }
+    }
 };
 
 export default NextAuth(authOptions);

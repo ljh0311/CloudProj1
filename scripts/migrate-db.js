@@ -66,21 +66,21 @@ async function createTables(connection) {
   await connection.execute(`
     CREATE TABLE IF NOT EXISTS orders (
       id VARCHAR(36) PRIMARY KEY DEFAULT (UUID()),
-      user_id VARCHAR(36) NOT NULL,
-      order_number VARCHAR(50) UNIQUE NOT NULL,
+      userId VARCHAR(36) NOT NULL,
+      orderNumber VARCHAR(50) UNIQUE NOT NULL,
       items JSON NOT NULL,
       subtotal DECIMAL(10, 2) NOT NULL,
       tax DECIMAL(10, 2) NOT NULL,
       shipping DECIMAL(10, 2) NOT NULL,
       total DECIMAL(10, 2) NOT NULL,
       status ENUM('pending', 'processing', 'shipped', 'delivered', 'cancelled') NOT NULL DEFAULT 'pending',
-      shipping_address JSON NOT NULL,
-      billing_address JSON NOT NULL,
-      payment_method JSON NOT NULL,
+      shippingAddress JSON NOT NULL,
+      billingAddress JSON NOT NULL,
+      paymentMethod JSON NOT NULL,
       notes TEXT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
     )
   `);
 

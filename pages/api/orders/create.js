@@ -32,8 +32,8 @@ export default async function handler(req, res) {
 
         // Create order in database
         const orderData = {
-            user_id: session.user.id,
-            order_number: `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            userId: session.user.id,
+            orderNumber: `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
             items: items.map(item => ({
                 id: item.id,
                 name: item.name,
@@ -47,9 +47,9 @@ export default async function handler(req, res) {
             shipping,
             total,
             status: status || 'pending',
-            shipping_address: shipping_address || {},
-            billing_address: billing_address || {},
-            payment_method: payment_method || {
+            shippingAddress: shipping_address || {},
+            billingAddress: billing_address || {},
+            paymentMethod: payment_method || {
                 type: 'card',
                 status: 'completed'
             },
@@ -57,8 +57,8 @@ export default async function handler(req, res) {
         };
 
         console.log('Creating order with data:', {
-            order_number: orderData.order_number,
-            user_id: orderData.user_id,
+            order_number: orderData.orderNumber,
+            user_id: orderData.userId,
             total: orderData.total,
             itemsCount: orderData.items.length
         });
@@ -72,7 +72,7 @@ export default async function handler(req, res) {
 
         console.log('Order created successfully:', {
             id: result.data.id,
-            order_number: result.data.order_number
+            order_number: result.data.orderNumber
         });
 
         res.status(201).json({

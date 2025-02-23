@@ -301,6 +301,15 @@ export default function Checkout() {
                 throw new Error(`Order creation failed: ${response.status} ${response.statusText}`);
             }
 
+            const data = await response.json();
+            
+            // Store order info in sessionStorage
+            sessionStorage.setItem('recentOrder', JSON.stringify({
+                orderNumber: orderNumber,
+                date: new Date().toISOString(),
+                total: getCartTotal() * 1.07 + 5.00
+            }));
+
             // Clear cart and redirect to success page
             clearCart();
             router.push('/order-success');

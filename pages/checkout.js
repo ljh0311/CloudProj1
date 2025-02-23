@@ -225,9 +225,17 @@ export default function Checkout() {
         setIsProcessing(true);
 
         try {
-            // Check stock availability first
-            const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
-            const stockCheckResponse = await fetch(`${baseUrl}/api/products/check-stock`, {
+            // Show processing message
+            toast({
+                title: 'Processing Order',
+                description: 'Checking stock availability...',
+                status: 'info',
+                duration: null,
+                isClosable: false
+            });
+
+            // Check stock availability
+            const stockCheckResponse = await fetch('/api/products/check-stock', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -242,13 +250,29 @@ export default function Checkout() {
             });
 
             const stockCheckResult = await stockCheckResponse.json();
-            if (!stockCheckResponse.ok) {
-                throw new Error(stockCheckResult.error || 'Failed to check stock availability');
+            
+            // Close the processing toast
+            toast.closeAll();
+
+            if (!stockCheckResult.success) {
+                if (stockCheckResult.insufficientItems) {
+                    const itemsList = stockCheckResult.insufficientItems
+                        .map(item => `${item.name} (Size ${item.size}): ${item.available} available, ${item.requested} requested`)
+                        .join('\\n');
+                    
+                    throw new Error(`The following items are out of stock:\\n${itemsList}`);
+                }
+                throw new Error(stockCheckResult.message || 'Failed to check stock availability');
             }
 
-            if (!stockCheckResult.available) {
-                throw new Error(stockCheckResult.message || 'Some items are out of stock');
-            }
+            // Show processing payment message
+            toast({
+                title: 'Processing Payment',
+                description: 'Please wait while we process your payment...',
+                status: 'info',
+                duration: null,
+                isClosable: false
+            });
 
             // Generate unique order number
             const orderNumber = generateOrderNumber();
@@ -264,7 +288,7 @@ export default function Checkout() {
             };
 
             // Create order
-            const response = await fetch(`${baseUrl}/api/orders/create`, {
+            const response = await fetch('/api/orders/create', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -299,6 +323,9 @@ export default function Checkout() {
 
             const data = await response.json();
 
+            // Close processing toast
+            toast.closeAll();
+
             if (!response.ok) {
                 throw new Error(data.error || 'Failed to create order');
             }
@@ -306,20 +333,27 @@ export default function Checkout() {
             // Clear cart after successful payment
             clearCart();
 
+            // Show success message
             toast({
-                title: 'Payment Successful',
-                description: `Order #${orderNumber} has been placed successfully`,
+                title: 'Order Placed Successfully',
+                description: `Order #${orderNumber} has been confirmed. You will receive a confirmation email shortly.`,
                 status: 'success',
                 duration: 5000,
                 isClosable: true
             });
 
+            // Redirect to orders page
             router.push('/orders');
         } catch (error) {
             console.error('Payment processing error:', error);
+            
+            // Close any existing toasts
+            toast.closeAll();
+            
+            // Show error message
             toast({
                 title: 'Payment Failed',
-                description: error.message || 'Failed to process payment',
+                description: error.message || 'An error occurred while processing your payment',
                 status: 'error',
                 duration: 5000,
                 isClosable: true

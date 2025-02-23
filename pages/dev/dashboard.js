@@ -117,7 +117,7 @@ const ScriptRunner = () => {
         setIsRunning(true);
         setScriptStatus(prev => ({ ...prev, [scriptName]: 'running' }));
         setScriptOutput(prev => ({ ...prev, [scriptName]: '' }));
-        
+
         try {
             const response = await fetch('/api/dev/run-script', {
                 method: 'POST',
@@ -128,7 +128,7 @@ const ScriptRunner = () => {
             });
 
             const data = await response.json();
-            
+
             if (response.ok) {
                 setScriptStatus(prev => ({ ...prev, [scriptName]: 'success' }));
                 setScriptOutput(prev => ({ ...prev, [scriptName]: data.output }));
@@ -190,8 +190,8 @@ const ScriptRunner = () => {
                                             scriptStatus[script.script] === 'success'
                                                 ? 'green'
                                                 : scriptStatus[script.script] === 'error'
-                                                ? 'red'
-                                                : 'yellow'
+                                                    ? 'red'
+                                                    : 'yellow'
                                         }
                                     >
                                         {scriptStatus[script.script]}
@@ -341,17 +341,17 @@ const DatabaseDebugger = () => {
                             {debugInfo?.database || 'Unknown Database'}
                         </Badge>
                     </HStack>
-                    
+
                     <Box>
                         <Text color="gray.300" fontSize="sm">Host:</Text>
                         <Code>{debugInfo?.host || 'Not configured'}</Code>
                     </Box>
-                    
+
                     <Box>
                         <Text color="gray.300" fontSize="sm">User:</Text>
                         <Code>{debugInfo?.user || 'Not configured'}</Code>
                     </Box>
-                    
+
                     <Box>
                         <Text color="gray.300" fontSize="sm">Connection Pool:</Text>
                         <HStack>
@@ -414,7 +414,7 @@ export default function DevDashboard() {
     const fetchData = async () => {
         try {
             setIsLoading(true);
-            
+
             // Fetch JSON data
             const jsonResponse = await fetch('/api/dev/json-data');
             const jsonResult = await jsonResponse.json();
@@ -454,10 +454,10 @@ export default function DevDashboard() {
                 if (!mysqlUser) {
                     diffs.users.push({ type: 'missing_in_mysql', data: jsonUser });
                 } else if (JSON.stringify(jsonUser) !== JSON.stringify(mysqlUser)) {
-                    diffs.users.push({ 
-                        type: 'different', 
-                        json: jsonUser, 
-                        mysql: mysqlUser 
+                    diffs.users.push({
+                        type: 'different',
+                        json: jsonUser,
+                        mysql: mysqlUser
                     });
                 }
             });
@@ -470,10 +470,10 @@ export default function DevDashboard() {
                 if (!mysqlProduct) {
                     diffs.products.push({ type: 'missing_in_mysql', data: jsonProduct });
                 } else if (JSON.stringify(jsonProduct) !== JSON.stringify(mysqlProduct)) {
-                    diffs.products.push({ 
-                        type: 'different', 
-                        json: jsonProduct, 
-                        mysql: mysqlProduct 
+                    diffs.products.push({
+                        type: 'different',
+                        json: jsonProduct,
+                        mysql: mysqlProduct
                     });
                 }
             });
@@ -486,7 +486,7 @@ export default function DevDashboard() {
         if (!data || data.length === 0) return <Text>No data available</Text>;
 
         const columns = Object.keys(data[0]);
-        
+
         return (
             <Box overflowX="auto">
                 <Table variant="simple" size="sm">
@@ -502,7 +502,7 @@ export default function DevDashboard() {
                             <Tr key={index}>
                                 {columns.map(column => (
                                     <Td key={column}>
-                                        {typeof item[column] === 'object' 
+                                        {typeof item[column] === 'object'
                                             ? <Code>{JSON.stringify(item[column])}</Code>
                                             : String(item[column])
                                         }
@@ -557,7 +557,7 @@ export default function DevDashboard() {
     const testAuth = async () => {
         try {
             setAuthTest(prev => ({ ...prev, loading: true, result: null }));
-            
+
             // First, check environment configuration
             const configResponse = await fetch('/api/dev/auth-config');
             const configResult = await configResponse.json();
@@ -598,7 +598,7 @@ export default function DevDashboard() {
             <VStack spacing={4} align="stretch">
                 <FormControl>
                     <FormLabel>Test Email</FormLabel>
-                    <Input 
+                    <Input
                         value={authTest.email}
                         onChange={(e) => setAuthTest(prev => ({ ...prev, email: e.target.value }))}
                         placeholder="Enter test email"
@@ -607,7 +607,7 @@ export default function DevDashboard() {
 
                 <FormControl>
                     <FormLabel>Test Password</FormLabel>
-                    <Input 
+                    <Input
                         type="password"
                         value={authTest.password}
                         onChange={(e) => setAuthTest(prev => ({ ...prev, password: e.target.value }))}
@@ -642,7 +642,7 @@ export default function DevDashboard() {
                 )}
 
                 {authTest.result && (
-                    <Alert 
+                    <Alert
                         status={authTest.result.success ? "success" : "error"}
                         mt={4}
                     >

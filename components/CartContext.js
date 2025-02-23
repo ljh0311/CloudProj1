@@ -36,7 +36,7 @@ export function CartProvider({ children }) {
 
             // Add new item if it doesn't exist
             return [...prevItems, {
-                id: `${product.id}-${size}-${Date.now()}`,
+                cartItemId: `${product.id}-${size}-${Date.now()}`,
                 product_id: product.id,
                 name: product.name,
                 price: product.price,
@@ -48,15 +48,15 @@ export function CartProvider({ children }) {
         });
     };
 
-    const removeFromCart = (itemId) => {
-        setCartItems(prevItems => prevItems.filter(item => item.id !== itemId));
+    const removeFromCart = (cartItemId) => {
+        setCartItems(prevItems => prevItems.filter(item => item.cartItemId !== cartItemId));
     };
 
-    const updateQuantity = (itemId, newQuantity) => {
+    const updateQuantity = (cartItemId, newQuantity) => {
         if (newQuantity < 1) return;
         setCartItems(prevItems =>
             prevItems.map(item =>
-                item.id === itemId ? { ...item, quantity: newQuantity } : item
+                item.cartItemId === cartItemId ? { ...item, quantity: newQuantity } : item
             )
         );
     };

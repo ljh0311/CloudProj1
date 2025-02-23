@@ -82,6 +82,7 @@ export default function Checkout() {
         shipping: 0,
         total: 0
     });
+    const [error, setError] = useState('');
 
     // Calculate order summary on cart changes
     useEffect(() => {
@@ -210,154 +211,82 @@ export default function Checkout() {
         }
     };
 
-    const processPayment = async () => {
-        if (!validateForm()) {
-            toast({
-                title: 'Validation Error',
-                description: 'Please check your card details',
-                status: 'error',
-                duration: 3000,
-                isClosable: true
-            });
-            return;
-        }
-
+    const handleSubmit = async (e) => {
+        e.preventDefault();
         setIsProcessing(true);
+        setError('');
 
         try {
-            // Show processing message
-            toast({
-                title: 'Processing Order',
-                description: 'Checking stock availability...',
-                status: 'info',
-                duration: null,
-                isClosable: false
-            });
-
-            // Check stock availability
-            const stockCheckResponse = await fetch('/api/products/check-stock', {
+            // Check stock availability first
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+            const stockCheckResponse = await fetch(`${baseUrl}/api/products/check-stock`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                     items: cartItems.map(item => ({
-                        id: item.id,
+                        product_id: item.product_id,
                         size: item.size,
-                        quantity: parseInt(item.quantity)
+                        quantity: item.quantity
                     }))
                 })
             });
 
-            const stockCheckResult = await stockCheckResponse.json();
-            
-            // Close the processing toast
-            toast.closeAll();
-
-            if (!stockCheckResult.success) {
-                if (stockCheckResult.insufficientItems) {
-                    const itemsList = stockCheckResult.insufficientItems
-                        .map(item => `${item.name} (Size ${item.size}): ${item.available} available, ${item.requested} requested`)
-                        .join('\\n');
-                    
-                    throw new Error(`The following items are out of stock:\\n${itemsList}`);
-                }
-                throw new Error(stockCheckResult.message || 'Failed to check stock availability');
+            const stockCheckData = await stockCheckResponse.json();
+            if (!stockCheckData.success) {
+                setError(stockCheckData.message);
+                setIsProcessing(false);
+                return;
             }
 
-            // Show processing payment message
-            toast({
-                title: 'Processing Payment',
-                description: 'Please wait while we process your payment...',
-                status: 'info',
-                duration: null,
-                isClosable: false
-            });
-
-            // Generate unique order number
-            const orderNumber = generateOrderNumber();
-
-            // Prepare shipping and billing addresses
-            const shippingAddress = {
-                name: paymentData.cardHolder,
-                address: "Default Address",
-                city: "Default City",
-                state: "Default State",
-                zipCode: "12345",
-                country: "Default Country"
-            };
-
-            // Create order
-            const response = await fetch('/api/orders/create', {
+            // Proceed with order creation
+            const response = await fetch(`${baseUrl}/api/orders/create`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    userId: session.user.id,
-                    orderNumber,
                     items: cartItems.map(item => ({
-                        id: item.id,
-                        name: item.name,
-                        price: parseFloat(item.price),
-                        quantity: parseInt(item.quantity),
+                        product_id: item.product_id,
                         size: item.size,
-                        image: item.image
+                        quantity: item.quantity,
+                        price: item.price
                     })),
-                    subtotal: parseFloat(orderSummary.subtotal.toFixed(2)),
-                    tax: parseFloat(orderSummary.tax.toFixed(2)),
-                    shipping: parseFloat(orderSummary.shipping.toFixed(2)),
-                    total: parseFloat(orderSummary.total.toFixed(2)),
-                    status: 'pending',
-                    shippingAddress,
-                    billingAddress: shippingAddress,
-                    paymentMethod: {
-                        type: cardType.type.toLowerCase(),
-                        status: 'completed',
-                        lastFour: paymentData.cardNumber.slice(-4),
-                        cardHolder: paymentData.cardHolder,
-                        expiryDate: paymentData.expiryDate
-                    }
+                    shipping_address: {
+                        name: paymentData.cardHolder,
+                        address: 'Default Address', // You may want to add address fields to your form
+                        city: 'Default City',
+                        state: 'Default State',
+                        postal_code: '12345'
+                    },
+                    payment: {
+                        cardholder_name: paymentData.cardHolder,
+                        card_last4: paymentData.cardNumber.slice(-4),
+                        expiry_date: paymentData.expiryDate,
+                        amount: getCartTotal()
+                    },
+                    subtotal: getCartTotal(),
+                    tax: getCartTotal() * 0.07,
+                    shipping: 5.00,
+                    total: getCartTotal() * 1.07 + 5.00
                 })
             });
 
             const data = await response.json();
-
-            // Close processing toast
-            toast.closeAll();
-
-            if (!response.ok) {
-                throw new Error(data.error || 'Failed to create order');
+            if (!data.success) {
+                setError(data.message || 'Failed to create order');
+                setIsProcessing(false);
+                return;
             }
 
-            // Clear cart after successful payment
+            // Clear cart and redirect to success page
             clearCart();
+            router.push('/order-success');
 
-            // Show success message
-            toast({
-                title: 'Order Placed Successfully',
-                description: `Order #${orderNumber} has been confirmed. You will receive a confirmation email shortly.`,
-                status: 'success',
-                duration: 5000,
-                isClosable: true
-            });
-
-            // Redirect to orders page
-            router.push('/orders');
         } catch (error) {
-            console.error('Payment processing error:', error);
-            
-            // Close any existing toasts
-            toast.closeAll();
-            
-            // Show error message
-            toast({
-                title: 'Payment Failed',
-                description: error.message || 'An error occurred while processing your payment',
-                status: 'error',
-                duration: 5000,
-                isClosable: true
-            });
+            console.error('Checkout error:', error);
+            setError('An error occurred during checkout. Please try again.');
         } finally {
             setIsProcessing(false);
         }
@@ -556,7 +485,7 @@ export default function Checkout() {
                                         <Button
                                             colorScheme="blue"
                                             size="lg"
-                                            onClick={processPayment}
+                                            onClick={handleSubmit}
                                             isLoading={isProcessing}
                                             loadingText="Processing Payment"
                                             disabled={isProcessing}

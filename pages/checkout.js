@@ -357,7 +357,7 @@ export default function Checkout() {
                                     <AlertTitle>Free Shipping Available!</AlertTitle>
                                     <AlertDescription>
                                         {orderSummary.total >= 100 
-                                            ? "You've qualified for free shipping!"
+                                            ? 'You\'ve qualified for free shipping!'
                                             : `Spend $${(100 - orderSummary.subtotal).toFixed(2)} more to get free shipping!`
                                         }
                                     </AlertDescription>
@@ -538,7 +538,7 @@ export default function Checkout() {
                                         </Button>
 
                                         <Text color="whiteAlpha.600" fontSize="sm" textAlign="center">
-                                            By clicking "Pay Now", you agree to our terms of service and privacy policy.
+                                            By clicking &quot;Pay Now&quot;, you agree to our terms of service and privacy policy.
                                         </Text>
                                     </VStack>
                                 </CardBody>

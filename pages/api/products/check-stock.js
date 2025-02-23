@@ -30,17 +30,12 @@ export default async function handler(req, res) {
             }
 
             // Get current stock for the product and size
+            const sizeColumn = `size_${size.toLowerCase()}_stock`;
             const [rows] = await connection.query(
-                `SELECT 
-                    id,
-                    CASE 
-                        WHEN ? = 'S' THEN stock_s
-                        WHEN ? = 'M' THEN stock_m
-                        WHEN ? = 'L' THEN stock_l
-                    END as available_stock
+                `SELECT id, ${sizeColumn} as available_stock
                 FROM products 
                 WHERE id = ?`,
-                [size.toUpperCase(), size.toUpperCase(), size.toUpperCase(), product_id]
+                [product_id]
             );
 
             if (rows.length === 0) {

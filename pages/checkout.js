@@ -225,26 +225,29 @@ export default function Checkout() {
         setIsProcessing(true);
 
         try {
-            // Log session data for debugging
-            console.log('Session data:', {
-                user: session?.user,
-                id: session?.user?.id,
-                email: session?.user?.email
+            // Check stock availability first
+            const stockCheckResponse = await fetch('/api/products/check-stock', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    items: cartItems.map(item => ({
+                        id: item.id,
+                        size: item.size,
+                        quantity: parseInt(item.quantity)
+                    }))
+                })
             });
 
-            if (!session?.user?.id) {
-                throw new Error('User not authenticated');
+            const stockCheckResult = await stockCheckResponse.json();
+            if (!stockCheckResponse.ok) {
+                throw new Error(stockCheckResult.error || 'Failed to check stock availability');
             }
 
-            // Prepare shipping and billing addresses
-            const shippingAddress = {
-                name: paymentData.cardHolder,
-                address: "Default Address",
-                city: "Default City",
-                state: "Default State",
-                zipCode: "12345",
-                country: "Default Country"
-            };
+            if (!stockCheckResult.available) {
+                throw new Error(stockCheckResult.message || 'Some items are out of stock');
+            }
 
             // Generate unique order number
             const orderNumber = generateOrderNumber();

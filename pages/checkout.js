@@ -248,75 +248,105 @@ export default function Checkout() {
             const stockCheckData = await stockCheckResponse.json();
             if (!stockCheckData.success) {
                 setError(stockCheckData.message);
-                setIsProcessing(false);
                 return;
             }
 
-            // Proceed with order creation
-            console.log('Making request to:', `${baseUrl}/api/orders/create`);
-            const orderNumber = generateOrderNumber();
-            const response = await fetch(`${baseUrl}/api/orders/create`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
+            // If form validation passes and stock is available, proceed with order creation
+            if (validateForm()) {
+                const orderNumber = generateOrderNumber();
+                const orderData = {
                     orderNumber,
                     items: cartItems.map(item => ({
                         id: item.product_id,
                         size: item.size,
                         quantity: item.quantity,
-                        price: item.price
+                        price: item.price,
+                        name: item.name
                     })),
+                    subtotal: orderSummary.subtotal,
+                    tax: orderSummary.tax,
+                    shipping: orderSummary.shipping,
+                    total: orderSummary.total,
                     shippingAddress: {
-                        name: paymentData.cardHolder,
-                        address: 'Default Address',
-                        city: 'Default City',
-                        state: 'Default State',
-                        postalCode: '12345'
+                        name: session.user.name,
+                        email: session.user.email,
+                        // Add default shipping address for testing
+                        address: "123 Test Street",
+                        city: "Test City",
+                        state: "TS",
+                        zip: "12345"
                     },
                     billingAddress: {
                         name: paymentData.cardHolder,
-                        address: 'Default Address',
-                        city: 'Default City',
-                        state: 'Default State',
-                        postalCode: '12345'
+                        // Use same address as shipping for testing
+                        address: "123 Test Street",
+                        city: "Test City",
+                        state: "TS",
+                        zip: "12345"
                     },
                     paymentMethod: {
-                        type: 'credit_card',
-                        cardholderName: paymentData.cardHolder,
-                        cardLast4: paymentData.cardNumber.slice(-4),
+                        type: cardType.type,
+                        lastFour: paymentData.cardNumber.slice(-4),
                         expiryDate: paymentData.expiryDate
-                    },
-                    subtotal: getCartTotal(),
-                    tax: getCartTotal() * 0.07,
-                    shipping: 5.00,
-                    total: getCartTotal() * 1.07 + 5.00
-                })
-            });
+                    }
+                };
 
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Order creation error response:', errorText);
-                throw new Error(`Order creation failed: ${response.status} ${response.statusText}`);
+                try {
+                    const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+                    const createOrderUrl = baseUrl ? `${baseUrl}/api/orders/create` : '/api/orders/create';
+                    
+                    const response = await fetch(createOrderUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(orderData)
+                    });
+
+                    const result = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(result.error || 'Failed to create order');
+                    }
+
+                    if (!result.success) {
+                        throw new Error(result.error || 'Order creation failed');
+                    }
+
+                    // Store order info in sessionStorage
+                    const orderInfo = {
+                        orderNumber: result.orderNumber,
+                        date: new Date().toISOString(),
+                        total: orderSummary.total,
+                        items: cartItems
+                    };
+                    sessionStorage.setItem('lastOrder', JSON.stringify(orderInfo));
+
+                    // Clear cart and redirect to success page
+                    clearCart();
+                    router.push('/order-success');
+                } catch (error) {
+                    console.error('Order creation error:', error);
+                    setError(error.message || 'Failed to create order. Please try again.');
+                    toast({
+                        title: 'Error',
+                        description: error.message || 'Failed to create order. Please try again.',
+                        status: 'error',
+                        duration: 5000,
+                        isClosable: true
+                    });
+                }
             }
-
-            const data = await response.json();
-            
-            // Store order info in sessionStorage
-            sessionStorage.setItem('recentOrder', JSON.stringify({
-                orderNumber: orderNumber,
-                date: new Date().toISOString(),
-                total: getCartTotal() * 1.07 + 5.00
-            }));
-
-            // Clear cart and redirect to success page
-            clearCart();
-            router.push('/order-success');
-
         } catch (error) {
             console.error('Checkout error:', error);
-            setError('An error occurred during checkout. Please try again.');
+            setError(error.message || 'An error occurred during checkout');
+            toast({
+                title: 'Error',
+                description: error.message || 'An error occurred during checkout',
+                status: 'error',
+                duration: 5000,
+                isClosable: true
+            });
         } finally {
             setIsProcessing(false);
         }

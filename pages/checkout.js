@@ -219,8 +219,9 @@ export default function Checkout() {
         try {
             // Check stock availability first
             const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
-            console.log('Making request to:', `${baseUrl}/api/products/check-stock`);
-            const stockCheckResponse = await fetch(`${baseUrl}/api/products/check-stock`, {
+            const stockCheckUrl = baseUrl ? `${baseUrl}/api/products/check-stock` : '/api/products/check-stock';
+            console.log('Making request to:', stockCheckUrl);
+            const stockCheckResponse = await fetch(stockCheckUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

@@ -15,7 +15,7 @@ export default async function handler(req, res) {
         }
 
         console.log('Session data:', { 
-            userId: session.user.id,
+            user_id: session.user.id,
             userEmail: session.user.email 
         });
 
@@ -38,10 +38,10 @@ export default async function handler(req, res) {
 
         // Create order in database
         const orderData = {
-            userId: session.user.id,
-            orderNumber: `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            user_id: session.user.id,
+            order_number: `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
             items: items.map(item => ({
-                productId: item.id,
+                product_id: item.id,
                 name: item.name,
                 price: item.price,
                 quantity: item.quantity,
@@ -53,9 +53,9 @@ export default async function handler(req, res) {
             shipping,
             total,
             status: 'processing',
-            shippingAddress: {}, // Add proper shipping address handling
-            billingAddress: {}, // Add proper billing address handling
-            paymentMethod: {
+            shipping_address: {}, // Add proper shipping address handling
+            billing_address: {}, // Add proper billing address handling
+            payment_method: {
                 type: 'card',
                 status: paymentStatus
             },
@@ -63,8 +63,8 @@ export default async function handler(req, res) {
         };
 
         console.log('Creating order with data:', {
-            orderNumber: orderData.orderNumber,
-            userId: orderData.userId,
+            order_number: orderData.order_number,
+            user_id: orderData.user_id,
             total: orderData.total,
             itemsCount: orderData.items.length
         });
@@ -77,19 +77,18 @@ export default async function handler(req, res) {
         }
 
         console.log('Order created successfully:', {
-            orderId: result.data.id,
-            orderNumber: result.data.orderNumber
+            id: result.data.id,
+            order_number: result.data.order_number
         });
 
         res.status(201).json({
-            message: 'Order created successfully',
-            orderId: result.data.id,
-            orderNumber: result.data.orderNumber
+            success: true,
+            order: result.data
         });
     } catch (error) {
         console.error('Error in order creation:', error);
         res.status(500).json({ 
-            message: 'Error creating order',
+            success: false,
             error: error.message 
         });
     }

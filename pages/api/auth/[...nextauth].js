@@ -52,10 +52,6 @@ export const authOptions = {
         strategy: 'jwt',
         maxAge: 30 * 24 * 60 * 60, // 30 days
     },
-    jwt: {
-        secret: process.env.NEXTAUTH_SECRET,
-        maxAge: 30 * 24 * 60 * 60, // 30 days
-    },
     callbacks: {
         async signIn({ user, account }) {
             if (account?.type === 'credentials') {
@@ -63,17 +59,23 @@ export const authOptions = {
             }
             return false;
         },
-        async jwt({ token, user }) {
-            if (user) {
-                token.role = user.role;
+        async jwt({ token, user, account, profile, trigger }) {
+            if (trigger === 'signIn' && user) {
                 token.id = user.id;
+                token.role = user.role;
+                token.email = user.email;
+                token.name = user.name;
             }
             return token;
         },
         async session({ session, token }) {
             if (token) {
-                session.user.role = token.role;
-                session.user.id = token.id;
+                session.user = {
+                    id: token.id,
+                    name: token.name,
+                    email: token.email,
+                    role: token.role
+                };
             }
             return session;
         }
@@ -82,37 +84,8 @@ export const authOptions = {
         signIn: '/auth',
         error: '/auth',
     },
-    debug: true,
     secret: process.env.NEXTAUTH_SECRET,
-    trustHost: true,
-    cookies: {
-        sessionToken: {
-            name: 'next-auth.session-token',
-            options: {
-                httpOnly: true,
-                sameSite: 'lax',
-                path: '/',
-                secure: false
-            }
-        },
-        callbackUrl: {
-            name: 'next-auth.callback-url',
-            options: {
-                sameSite: 'lax',
-                path: '/',
-                secure: false
-            }
-        },
-        csrfToken: {
-            name: 'next-auth.csrf-token',
-            options: {
-                httpOnly: true,
-                sameSite: 'lax',
-                path: '/',
-                secure: false
-            }
-        }
-    }
+    debug: process.env.NODE_ENV === 'development',
 };
 
 export default NextAuth(authOptions);

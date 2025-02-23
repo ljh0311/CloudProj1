@@ -58,7 +58,12 @@ const generateOrderNumber = () => {
 };
 
 export default function Checkout() {
-    const { data: session, status } = useSession();
+    const { data: session, status } = useSession({
+        required: true,
+        onUnauthenticated() {
+            router.push('/auth?returnUrl=/checkout');
+        },
+    });
     const router = useRouter();
     const toast = useToast();
     const { cartItems, getCartTotal, clearCart } = useCart();
@@ -92,13 +97,6 @@ export default function Checkout() {
             total
         });
     }, [cartItems, getCartTotal]);
-
-    // Redirect if not authenticated
-    useEffect(() => {
-        if (status === 'unauthenticated') {
-            router.push('/auth?returnUrl=/checkout');
-        }
-    }, [status, router]);
 
     // Redirect if cart is empty
     useEffect(() => {
@@ -230,8 +228,13 @@ export default function Checkout() {
             // Log session data for debugging
             console.log('Session data:', {
                 user: session?.user,
-                id: session?.user?.id
+                id: session?.user?.id,
+                email: session?.user?.email
             });
+
+            if (!session?.user?.id) {
+                throw new Error('User not authenticated');
+            }
 
             // Prepare shipping and billing addresses
             const shippingAddress = {
@@ -253,6 +256,7 @@ export default function Checkout() {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
+                    userId: session.user.id,
                     orderNumber,
                     items: cartItems.map(item => ({
                         id: item.id,

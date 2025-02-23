@@ -12,8 +12,18 @@ export default async function handler(req, res) {
 
         // Validate required fields
         if (!name || !email || !password) {
-            console.error('Missing required fields:', { name: !!name, email: !!email, password: !!password });
             return res.status(400).json({ error: 'Missing required fields' });
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ error: 'Invalid email format' });
+        }
+
+        // Validate password strength
+        if (password.length < 6) {
+            return res.status(400).json({ error: 'Password must be at least 6 characters long' });
         }
 
         console.log('Attempting to create user:', { name, email });
@@ -25,15 +35,19 @@ export default async function handler(req, res) {
             return res.status(400).json({ error: 'Email already registered' });
         }
 
-        // Hash password with bcrypt
+        // Hash password
         const hashedPassword = await bcrypt.hash(password, 12);
 
-        // Create user with proper fields
+        // Generate unique user ID
+        const userId = require('crypto').randomUUID();
+
+        // Create user
         const result = await createUser({
-            name,
-            email,
+            id: userId,
+            name: name.trim(),
+            email: email.toLowerCase(),
             password: hashedPassword,
-            role: 'customer'  // Default role
+            role: 'customer'
         });
 
         if (!result.success) {
@@ -43,8 +57,9 @@ export default async function handler(req, res) {
 
         console.log('User created successfully:', { id: result.data.id, email: result.data.email });
 
-        // Return success without exposing sensitive data
+        // Return success without sensitive data
         res.status(201).json({ 
+            success: true,
             message: 'User created successfully',
             user: {
                 id: result.data.id,
@@ -56,8 +71,9 @@ export default async function handler(req, res) {
     } catch (error) {
         console.error('Signup error:', error);
         res.status(500).json({ 
+            success: false,
             error: 'Failed to create user',
-            details: error.message
+            message: error.message
         });
     }
 } 

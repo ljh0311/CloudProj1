@@ -18,6 +18,11 @@ import {
     InputRightElement,
     HStack,
     Badge,
+    Spinner,
+    Alert,
+    AlertIcon,
+    AlertTitle,
+    AlertDescription,
     Image
 } from '@chakra-ui/react';
 import { useSession } from 'next-auth/react';
@@ -28,19 +33,32 @@ import Navbar from '../components/Navbar';
 import AnimatedBackground from '../components/AnimatedBackground';
 import { useCart } from '../components/CartContext';
 
-// Detect card type based on first digit
+// Detect card type based on first digit and length
 const getCardType = (number) => {
-    const firstDigit = number.charAt(0);
-    switch (firstDigit) {
-        case '4':
-            return { type: 'Visa', color: 'blue' };
-        case '5':
-            return { type: 'Mastercard', color: 'red' };
-        case '6':
-            return { type: 'AMEX', color: 'green' };
-        default:
-            return { type: 'Unknown', color: 'gray' };
+    if (!number) return { type: '', color: 'gray' };
+    
+    const patterns = {
+        visa: /^4[0-9]{12}(?:[0-9]{3})?$/,
+        mastercard: /^5[1-5][0-9]{14}$/,
+        amex: /^3[47][0-9]{13}$/
+    };
+
+    for (const [type, pattern] of Object.entries(patterns)) {
+        if (pattern.test(number)) {
+            return {
+                type: type.charAt(0).toUpperCase() + type.slice(1),
+                color: type === 'visa' ? 'blue' : type === 'mastercard' ? 'red' : 'green'
+            };
+        }
     }
+    return { type: 'Unknown', color: 'gray' };
+};
+
+// Generate unique order number
+const generateOrderNumber = () => {
+    const timestamp = Date.now().toString();
+    const random = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    return `ORD-${timestamp}-${random}`;
 };
 
 export default function Checkout() {
@@ -57,6 +75,27 @@ export default function Checkout() {
         cvv: ''
     });
     const [errors, setErrors] = useState({});
+    const [orderSummary, setOrderSummary] = useState({
+        subtotal: 0,
+        tax: 0,
+        shipping: 0,
+        total: 0
+    });
+
+    // Calculate order summary on cart changes
+    useEffect(() => {
+        const subtotal = getCartTotal();
+        const tax = parseFloat((subtotal * 0.07).toFixed(2)); // 7% tax
+        const shipping = subtotal > 100 ? 0 : 10; // Free shipping over $100
+        const total = parseFloat((subtotal + tax + shipping).toFixed(2));
+
+        setOrderSummary({
+            subtotal,
+            tax,
+            shipping,
+            total
+        });
+    }, [cartItems, getCartTotal]);
 
     // Redirect if not authenticated
     useEffect(() => {
@@ -65,42 +104,76 @@ export default function Checkout() {
         }
     }, [status, router]);
 
+    // Redirect if cart is empty
+    useEffect(() => {
+        if (cartItems.length === 0 && status !== 'loading') {
+            router.push('/cart');
+        }
+    }, [cartItems.length, status, router]);
+
     if (status === 'loading') {
-        return null;
+        return (
+            <Box height="100vh" display="flex" alignItems="center" justifyContent="center">
+                <Spinner size="xl" color="blue.500" />
+            </Box>
+        );
     }
 
-    if (!session) {
-        return null;
-    }
-
-    if (cartItems.length === 0) {
-        router.push('/cart');
+    if (!session || cartItems.length === 0) {
         return null;
     }
 
     const validateForm = () => {
         const newErrors = {};
         
-        // Card number validation (only check first digit and length)
-        if (!paymentData.cardNumber || paymentData.cardNumber.length !== 16) {
-            newErrors.cardNumber = 'Card number must be 16 digits';
-        } else if (!['4', '5', '6'].includes(paymentData.cardNumber.charAt(0))) {
-            newErrors.cardNumber = 'Card type not supported';
+        // Card number validation with Luhn algorithm
+        const isValidLuhn = (number) => {
+            let sum = 0;
+            let isEven = false;
+            
+            // Loop through values starting from the rightmost digit
+            for (let i = number.length - 1; i >= 0; i--) {
+                let digit = parseInt(number.charAt(i), 10);
+                
+                if (isEven) {
+                    digit *= 2;
+                    if (digit > 9) {
+                        digit -= 9;
+                    }
+                }
+                
+                sum += digit;
+                isEven = !isEven;
+            }
+            
+            return sum % 10 === 0;
+        };
+
+        // Card number validation
+        if (!paymentData.cardNumber || paymentData.cardNumber.length < 15) {
+            newErrors.cardNumber = 'Card number must be at least 15 digits';
+        } else if (!isValidLuhn(paymentData.cardNumber)) {
+            newErrors.cardNumber = 'Invalid card number';
         }
 
         // Card holder validation
         if (!paymentData.cardHolder || paymentData.cardHolder.length < 3) {
             newErrors.cardHolder = 'Please enter the cardholder name';
+        } else if (!/^[a-zA-Z\s]+$/.test(paymentData.cardHolder)) {
+            newErrors.cardHolder = 'Name should only contain letters and spaces';
         }
 
-        // Expiry date validation (MM/YY format)
+        // Expiry date validation
         const expiryRegex = /^(0[1-9]|1[0-2])\/([0-9]{2})$/;
         if (!paymentData.expiryDate || !expiryRegex.test(paymentData.expiryDate)) {
             newErrors.expiryDate = 'Invalid expiry date (MM/YY)';
         } else {
             const [month, year] = paymentData.expiryDate.split('/');
-            const expiry = new Date(2000 + parseInt(year), parseInt(month) - 1);
-            if (expiry < new Date()) {
+            const expiry = new Date(2000 + parseInt(year), parseInt(month));
+            const today = new Date();
+            today.setDate(1); // Set to first of month for accurate month comparison
+            
+            if (expiry < today) {
                 newErrors.expiryDate = 'Card has expired';
             }
         }
@@ -109,7 +182,6 @@ export default function Checkout() {
         if (!paymentData.cvv || !/^[0-9]{3,4}$/.test(paymentData.cvv)) {
             newErrors.cvv = 'Invalid CVV';
         } else {
-            // Additional check for odd ending
             const lastDigit = parseInt(paymentData.cvv.slice(-1));
             if (lastDigit % 2 === 0) {
                 newErrors.cvv = 'Card not accepted (CVV must end with odd number for testing)';
@@ -148,6 +220,11 @@ export default function Checkout() {
             formattedValue = value.replace(/\D/g, '').slice(0, 4);
         }
 
+        // Format cardholder name
+        if (name === 'cardHolder') {
+            formattedValue = value.replace(/[^a-zA-Z\s]/g, '');
+        }
+
         setPaymentData(prev => ({
             ...prev,
             [name]: formattedValue
@@ -183,12 +260,6 @@ export default function Checkout() {
                 id: session?.user?.id
             });
 
-            // Calculate order totals
-            const subtotal = getCartTotal();
-            const tax = parseFloat((subtotal * 0.07).toFixed(2)); // 7% tax
-            const shipping = subtotal > 100 ? 0 : 10; // Free shipping over $100
-            const total = parseFloat((subtotal + tax + shipping).toFixed(2));
-
             // Prepare shipping and billing addresses
             const shippingAddress = {
                 name: paymentData.cardHolder,
@@ -199,6 +270,9 @@ export default function Checkout() {
                 country: "Default Country"
             };
 
+            // Generate unique order number
+            const orderNumber = generateOrderNumber();
+
             // Create order
             const response = await fetch('/api/orders/create', {
                 method: 'POST',
@@ -206,6 +280,7 @@ export default function Checkout() {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
+                    orderNumber,
                     items: cartItems.map(item => ({
                         id: item.id,
                         name: item.name,
@@ -214,33 +289,25 @@ export default function Checkout() {
                         size: item.size,
                         image: item.image
                     })),
-                    subtotal: parseFloat(subtotal.toFixed(2)),
-                    tax: tax,
-                    shipping: shipping,
-                    total: total,
+                    subtotal: orderSummary.subtotal,
+                    tax: orderSummary.tax,
+                    shipping: orderSummary.shipping,
+                    total: orderSummary.total,
                     status: 'pending',
-                    shipping_address: shippingAddress,
-                    billing_address: shippingAddress, // Using same address for billing
-                    payment_method: {
-                        type: 'card',
+                    shippingAddress,
+                    billingAddress: shippingAddress,
+                    paymentMethod: {
+                        type: cardType.type.toLowerCase(),
                         status: 'completed',
-                        cardType: cardType.type,
                         lastFour: paymentData.cardNumber.slice(-4)
                     }
-                }),
-                credentials: 'include'
+                })
             });
 
             const data = await response.json();
 
             if (!response.ok) {
-                console.error('Order creation failed:', data);
                 throw new Error(data.error || 'Failed to create order');
-            }
-
-            if (!data.success) {
-                console.error('Order creation failed:', data);
-                throw new Error(data.error || 'Order creation failed');
             }
 
             // Clear cart after successful payment
@@ -248,7 +315,7 @@ export default function Checkout() {
 
             toast({
                 title: 'Payment Successful',
-                description: `Order #${data.order.orderNumber} has been placed successfully`,
+                description: `Order #${orderNumber} has been placed successfully`,
                 status: 'success',
                 duration: 5000,
                 isClosable: true
@@ -283,6 +350,21 @@ export default function Checkout() {
                     <Navbar />
 
                     <Container maxW="container.xl" py={12}>
+                        {orderSummary.total > 0 && (
+                            <Alert status="info" mb={6} borderRadius="md">
+                                <AlertIcon />
+                                <Box>
+                                    <AlertTitle>Free Shipping Available!</AlertTitle>
+                                    <AlertDescription>
+                                        {orderSummary.total >= 100 
+                                            ? "You've qualified for free shipping!"
+                                            : `Spend $${(100 - orderSummary.subtotal).toFixed(2)} more to get free shipping!`
+                                        }
+                                    </AlertDescription>
+                                </Box>
+                            </Alert>
+                        )}
+
                         <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={8}>
                             {/* Payment Form */}
                             <Card
@@ -308,6 +390,7 @@ export default function Checkout() {
                                                     bg="whiteAlpha.100"
                                                     color="white"
                                                     borderColor="whiteAlpha.200"
+                                                    disabled={isProcessing}
                                                 />
                                                 {cardType.type && (
                                                     <InputRightElement width="4.5rem">
@@ -330,6 +413,7 @@ export default function Checkout() {
                                                 bg="whiteAlpha.100"
                                                 color="white"
                                                 borderColor="whiteAlpha.200"
+                                                disabled={isProcessing}
                                             />
                                             <FormErrorMessage>{errors.cardHolder}</FormErrorMessage>
                                         </FormControl>
@@ -346,6 +430,7 @@ export default function Checkout() {
                                                     bg="whiteAlpha.100"
                                                     color="white"
                                                     borderColor="whiteAlpha.200"
+                                                    disabled={isProcessing}
                                                 />
                                                 <FormErrorMessage>{errors.expiryDate}</FormErrorMessage>
                                             </FormControl>
@@ -361,6 +446,7 @@ export default function Checkout() {
                                                     bg="whiteAlpha.100"
                                                     color="white"
                                                     borderColor="whiteAlpha.200"
+                                                    disabled={isProcessing}
                                                 />
                                                 <FormErrorMessage>{errors.cvv}</FormErrorMessage>
                                             </FormControl>
@@ -383,14 +469,32 @@ export default function Checkout() {
 
                                         <VStack spacing={4} align="stretch">
                                             {cartItems.map((item) => (
-                                                <HStack key={item.id} justify="space-between">
-                                                    <VStack align="start" spacing={0}>
-                                                        <Text color="white">{item.name}</Text>
-                                                        <HStack>
-                                                            <Badge colorScheme="purple">Size {item.size}</Badge>
-                                                            <Text color="whiteAlpha.600">x{item.quantity}</Text>
-                                                        </HStack>
-                                                    </VStack>
+                                                <HStack key={`${item.id}-${item.size}`} justify="space-between">
+                                                    <HStack spacing={4}>
+                                                        <Box
+                                                            width="50px"
+                                                            height="50px"
+                                                            borderRadius="md"
+                                                            overflow="hidden"
+                                                        >
+                                                            {item.image && (
+                                                                <Image
+                                                                    src={item.image}
+                                                                    alt={item.name}
+                                                                    width={50}
+                                                                    height={50}
+                                                                    objectFit="cover"
+                                                                />
+                                                            )}
+                                                        </Box>
+                                                        <VStack align="start" spacing={0}>
+                                                            <Text color="white">{item.name}</Text>
+                                                            <HStack>
+                                                                <Badge colorScheme="purple">Size {item.size}</Badge>
+                                                                <Text color="whiteAlpha.600">x{item.quantity}</Text>
+                                                            </HStack>
+                                                        </VStack>
+                                                    </HStack>
                                                     <Text color="white">${(item.price * item.quantity).toFixed(2)}</Text>
                                                 </HStack>
                                             ))}
@@ -398,12 +502,29 @@ export default function Checkout() {
 
                                         <Divider borderColor="whiteAlpha.200" />
 
-                                        <HStack justify="space-between">
-                                            <Text color="white" fontSize="lg" fontWeight="bold">Total</Text>
-                                            <Text color="white" fontSize="lg" fontWeight="bold">
-                                                ${getCartTotal().toFixed(2)}
-                                            </Text>
-                                        </HStack>
+                                        <VStack spacing={2}>
+                                            <HStack justify="space-between" width="100%">
+                                                <Text color="whiteAlpha.800">Subtotal</Text>
+                                                <Text color="white">${orderSummary.subtotal.toFixed(2)}</Text>
+                                            </HStack>
+                                            <HStack justify="space-between" width="100%">
+                                                <Text color="whiteAlpha.800">Tax (7%)</Text>
+                                                <Text color="white">${orderSummary.tax.toFixed(2)}</Text>
+                                            </HStack>
+                                            <HStack justify="space-between" width="100%">
+                                                <Text color="whiteAlpha.800">Shipping</Text>
+                                                <Text color="white">
+                                                    {orderSummary.shipping === 0 ? 'FREE' : `$${orderSummary.shipping.toFixed(2)}`}
+                                                </Text>
+                                            </HStack>
+                                            <Divider borderColor="whiteAlpha.200" />
+                                            <HStack justify="space-between" width="100%">
+                                                <Text color="white" fontSize="lg" fontWeight="bold">Total</Text>
+                                                <Text color="white" fontSize="lg" fontWeight="bold">
+                                                    ${orderSummary.total.toFixed(2)}
+                                                </Text>
+                                            </HStack>
+                                        </VStack>
 
                                         <Button
                                             colorScheme="blue"
@@ -411,9 +532,14 @@ export default function Checkout() {
                                             onClick={processPayment}
                                             isLoading={isProcessing}
                                             loadingText="Processing Payment"
+                                            disabled={isProcessing}
                                         >
                                             Pay Now
                                         </Button>
+
+                                        <Text color="whiteAlpha.600" fontSize="sm" textAlign="center">
+                                            By clicking "Pay Now", you agree to our terms of service and privacy policy.
+                                        </Text>
                                     </VStack>
                                 </CardBody>
                             </Card>

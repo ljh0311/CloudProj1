@@ -16,32 +16,26 @@ export default async function handler(req, res) {
 
         console.log('Session data:', { 
             user_id: session.user.id,
-            userEmail: session.user.email 
+            email: session.user.email 
         });
 
-        const { items, totalAmount, paymentStatus } = req.body;
+        const { items, subtotal, tax, shipping, total, status, shipping_address, billing_address, payment_method } = req.body;
         console.log('Order request data:', { 
             itemsCount: items?.length,
-            totalAmount,
-            paymentStatus
+            total,
+            status
         });
 
-        if (!items || !totalAmount) {
+        if (!items || !total) {
             return res.status(400).json({ message: 'Missing required fields' });
         }
-
-        // Calculate order details
-        const subtotal = totalAmount;
-        const tax = subtotal * 0.07; // 7% tax
-        const shipping = 5.99; // Fixed shipping cost
-        const total = subtotal + tax + shipping;
 
         // Create order in database
         const orderData = {
             user_id: session.user.id,
             order_number: `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
             items: items.map(item => ({
-                product_id: item.id,
+                id: item.id,
                 name: item.name,
                 price: item.price,
                 quantity: item.quantity,
@@ -52,12 +46,12 @@ export default async function handler(req, res) {
             tax,
             shipping,
             total,
-            status: 'processing',
-            shipping_address: {}, // Add proper shipping address handling
-            billing_address: {}, // Add proper billing address handling
-            payment_method: {
+            status: status || 'pending',
+            shipping_address: shipping_address || {},
+            billing_address: billing_address || {},
+            payment_method: payment_method || {
                 type: 'card',
-                status: paymentStatus
+                status: 'completed'
             },
             notes: ''
         };

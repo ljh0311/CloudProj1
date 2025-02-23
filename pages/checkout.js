@@ -191,15 +191,24 @@ export default function Checkout() {
                 },
                 body: JSON.stringify({
                     items: cartItems.map(item => ({
-                        productId: item.id,
+                        id: item.id,
                         name: item.name,
                         price: item.price,
                         quantity: item.quantity,
-                        size: item.size
+                        size: item.size,
+                        image: item.image
                     })),
-                    totalAmount: total,
-                    paymentStatus: 'completed',
-                    cardType: cardType.type
+                    subtotal: subtotal,
+                    tax: tax,
+                    shipping: shipping,
+                    total: total,
+                    status: 'pending',
+                    shipping_address: {},
+                    billing_address: {},
+                    payment_method: {
+                        type: 'card',
+                        status: 'completed'
+                    }
                 }),
                 credentials: 'include'
             });
@@ -219,7 +228,7 @@ export default function Checkout() {
 
             toast({
                 title: 'Payment Successful',
-                description: `Order #${data.order.orderNumber} has been placed successfully`,
+                description: `Order #${data.order.order_number} has been placed successfully`,
                 status: 'success',
                 duration: 5000,
                 isClosable: true

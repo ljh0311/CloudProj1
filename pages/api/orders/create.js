@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]';
 import { createOrder } from '../../../lib/db-service';
+import { pool } from '../../../lib/db-service';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -14,9 +15,11 @@ export default async function handler(req, res) {
             return res.status(401).json({ message: 'Not authenticated' });
         }
 
+        // Log session data for debugging
         console.log('Session data:', { 
             userId: session.user.id,
-            email: session.user.email 
+            email: session.user.email,
+            user: session.user
         });
 
         const { items, subtotal, tax, shipping, total, status, shipping_address, billing_address, payment_method } = req.body;
@@ -28,6 +31,20 @@ export default async function handler(req, res) {
 
         if (!items || !total) {
             return res.status(400).json({ message: 'Missing required fields' });
+        }
+
+        // Verify user exists in database
+        const [userExists] = await pool.execute(
+            'SELECT id FROM users WHERE id = ?',
+            [session.user.id]
+        );
+
+        if (!userExists || userExists.length === 0) {
+            console.error('User not found in database:', session.user.id);
+            return res.status(400).json({ 
+                success: false,
+                error: 'Invalid user account'
+            });
         }
 
         // Create order in database

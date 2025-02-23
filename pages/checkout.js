@@ -177,6 +177,12 @@ export default function Checkout() {
         setIsProcessing(true);
 
         try {
+            // Log session data for debugging
+            console.log('Session data:', {
+                user: session?.user,
+                id: session?.user?.id
+            });
+
             // Calculate order totals
             const subtotal = getCartTotal();
             const tax = parseFloat((subtotal * 0.07).toFixed(2)); // 7% tax
@@ -186,7 +192,7 @@ export default function Checkout() {
             // Prepare shipping and billing addresses
             const shippingAddress = {
                 name: paymentData.cardHolder,
-                address: "Default Address", // You can add proper address fields later
+                address: "Default Address",
                 city: "Default City",
                 state: "Default State",
                 zipCode: "12345",
@@ -228,10 +234,12 @@ export default function Checkout() {
             const data = await response.json();
 
             if (!response.ok) {
+                console.error('Order creation failed:', data);
                 throw new Error(data.error || 'Failed to create order');
             }
 
             if (!data.success) {
+                console.error('Order creation failed:', data);
                 throw new Error(data.error || 'Order creation failed');
             }
 
@@ -240,7 +248,7 @@ export default function Checkout() {
 
             toast({
                 title: 'Payment Successful',
-                description: `Order #${data.order.order_number} has been placed successfully`,
+                description: `Order #${data.order.orderNumber} has been placed successfully`,
                 status: 'success',
                 duration: 5000,
                 isClosable: true

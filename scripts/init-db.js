@@ -31,8 +31,10 @@ async function initializeDatabase() {
     const connection = await mysql.createConnection(dbConfig);
     
     try {
-        // Drop existing tables if they exist
+        // Drop existing tables if they exist in correct order
         await connection.execute('DROP TABLE IF EXISTS orders');
+        await connection.execute('DROP TABLE IF EXISTS sessions');
+        await connection.execute('DROP TABLE IF EXISTS verification_requests');
         await connection.execute('DROP TABLE IF EXISTS products');
         await connection.execute('DROP TABLE IF EXISTS users');
 

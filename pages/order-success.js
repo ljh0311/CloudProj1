@@ -83,7 +83,7 @@ export default function OrderSuccess() {
                                 textAlign="center"
                             >
                                 Your order has been successfully placed and will be processed shortly.
-                                We'll send you an email with your order details and tracking information.
+                                We&apos;ll send you an email with your order details and tracking information.
                             </Text>
 
                             <VStack spacing={4} mt={4}>

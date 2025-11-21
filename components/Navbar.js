@@ -297,8 +297,7 @@ export default function Navbar() {
         { href: "/orders", label: "Orders" },
       ]
       : [
-        { href: "/auth", label: "Sign In" },
-        { href: "/auth?mode=signup", label: "Sign Up" }
+        { href: "/auth", label: "Sign In" }
       ]
     )
   ];
@@ -393,28 +392,16 @@ export default function Navbar() {
                 <UserMenu session={session} isAdmin={isAdmin} />
               </>
             ) : (
-              <>
-                <Button
-                  as={NextLink}
-                  href="/auth"
-                  variant="ghost"
-                  color="white"
-                  _hover={{ bg: 'rgba(255, 255, 255, 0.1)' }}
-                  size="sm"
-                >
-                  Sign In
-                </Button>
-                <Button
-                  as={NextLink}
-                  href="/auth?mode=signup"
-                  bg="white"
-                  color="black"
-                  _hover={{ bg: 'rgba(255, 255, 255, 0.8)' }}
-                  size="sm"
-                >
-                  Sign Up
-                </Button>
-              </>
+              <Button
+                as={NextLink}
+                href="/auth"
+                bg="white"
+                color="black"
+                _hover={{ bg: 'rgba(255, 255, 255, 0.8)' }}
+                size="sm"
+              >
+                Sign In
+              </Button>
             )}
           </HStack>
         </Flex>

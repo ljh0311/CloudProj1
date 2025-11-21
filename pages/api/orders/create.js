@@ -1,13 +1,12 @@
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]';
-import { pool } from '../../../lib/mysql';
+import { createOrder } from '../../../lib/db-service-postgres';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    let connection;
     try {
         const session = await getServerSession(req, res, authOptions);
         
@@ -31,92 +30,26 @@ export default async function handler(req, res) {
             });
         }
 
-        // Get database connection and start transaction
-        connection = await pool.getConnection();
-        await connection.beginTransaction();
+        // Create order using the PostgreSQL service
+        const result = await createOrder(orderData);
 
-        try {
-            // Verify user exists
-            const [user] = await connection.execute(
-                'SELECT id FROM users WHERE id = ?',
-                [orderData.userId]
-            );
-
-            if (user.length === 0) {
-                throw new Error(`User not found: ${orderData.userId}`);
-            }
-
-            // Verify stock availability and update stock levels
-            for (const item of orderData.items) {
-                const sizeColumn = `size_${item.size.toLowerCase()}_stock`;
-                const [stockResult] = await connection.execute(
-                    `SELECT ${sizeColumn} as stock, name FROM products WHERE id = ?`,
-                    [item.id]
-                );
-
-                if (stockResult.length === 0) {
-                    throw new Error(`Product not found: ${item.id}`);
-                }
-
-                const currentStock = stockResult[0].stock;
-                if (currentStock < item.quantity) {
-                    throw new Error(`Insufficient stock for ${stockResult[0].name} (Size ${item.size})`);
-                }
-
-                // Update stock level
-                await connection.execute(
-                    `UPDATE products 
-                     SET ${sizeColumn} = ${sizeColumn} - ?
-                     WHERE id = ?`,
-                    [item.quantity, item.id]
-                );
-            }
-
-            // Create order
-            const [orderResult] = await connection.execute(
-                `INSERT INTO orders (
-                    userId, orderNumber, items, subtotal, tax, shipping, total,
-                    status, shippingAddress, billingAddress, paymentMethod, notes
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                [
-                    orderData.userId,
-                    orderData.orderNumber,
-                    JSON.stringify(orderData.items),
-                    orderData.subtotal,
-                    orderData.tax,
-                    orderData.shipping,
-                    orderData.total,
-                    orderData.status || 'pending',
-                    JSON.stringify(orderData.shippingAddress),
-                    JSON.stringify(orderData.billingAddress),
-                    JSON.stringify(orderData.paymentMethod),
-                    orderData.notes || ''
-                ]
-            );
-
-            // Commit transaction
-            await connection.commit();
-
-            // Return success response
-            return res.status(200).json({
-                success: true,
-                orderId: orderResult.insertId,
-                orderNumber: orderData.orderNumber
+        if (!result.success) {
+            return res.status(400).json({
+                error: result.error || 'Failed to create order'
             });
-
-        } catch (error) {
-            // Rollback transaction on error
-            await connection.rollback();
-            throw error;
         }
+
+        // Return success response
+        return res.status(200).json({
+            success: true,
+            orderId: result.data.id,
+            orderNumber: orderData.orderNumber
+        });
+
     } catch (error) {
         console.error('Order creation error:', error);
         return res.status(500).json({
             error: error.message || 'Failed to create order'
         });
-    } finally {
-        if (connection) {
-            connection.release();
-        }
     }
 } 

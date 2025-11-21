@@ -1,5 +1,5 @@
 import { getSession } from 'next-auth/react';
-import { getProducts, getUsers, getOrders } from '../../../lib/db-service';
+import { getProducts, getUsers, getOrders } from '../../../lib/db-service-postgres';
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') {

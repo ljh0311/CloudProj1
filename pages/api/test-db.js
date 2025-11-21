@@ -1,4 +1,4 @@
-import { getDebugInfo } from '../../lib/mysql';
+import { getDebugInfo } from '../../lib/postgres';
 
 export default async function handler(req, res) {
     try {

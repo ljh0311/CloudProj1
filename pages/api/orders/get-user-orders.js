@@ -1,6 +1,6 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '../auth/[...nextauth]';
-import { getOrders } from '../../../lib/db-service';
+import { getOrders } from '../../../lib/db-service-postgres';
 
 export default async function handler(req, res) {
     if (req.method !== 'GET') {

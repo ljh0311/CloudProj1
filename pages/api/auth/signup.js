@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import { getUserByEmail, createUser } from '../../../lib/db-service';
+import { getUserByEmail, createUser } from '../../../lib/db-service-postgres';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {

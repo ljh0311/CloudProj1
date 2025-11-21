@@ -7,6 +7,7 @@ A modern e-commerce platform specializing in vintage streetwear, built with Next
 [![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
 
 ## 📋 Table of Contents
+
 - [Quick Start](#-quick-start)
 - [System Requirements](#-system-requirements)
 - [Features](#-features)
@@ -20,12 +21,14 @@ A modern e-commerce platform specializing in vintage streetwear, built with Next
 ## 🚀 Quick Start
 
 ### Prerequisites
+
 - Node.js (v14 or higher)
 - npm (Node Package Manager)
 - MySQL (for local development)
 - Redis (for caching)
 
 ### Installation
+
 ```bash
 # Clone the repository
 git clone https://github.com/ljh0311/CloudProj1.git
@@ -46,6 +49,7 @@ Visit [http://localhost:3000](http://localhost:3000) to view the application.
 ## 🎯 System Requirements
 
 ### Functionality (** - Highest Priority)
+
 - [x] User Authentication System
   - NextAuth implementation with JWT
   - Role-based access control
@@ -68,7 +72,9 @@ Visit [http://localhost:3000](http://localhost:3000) to view the application.
   - Order oversight
 
 ### Scalability (* - Priority)
+
 - [ ] Database Implementation
+
   ```javascript
   // utils/db.js
   import mysql from 'mysql2/promise';
@@ -83,7 +89,9 @@ Visit [http://localhost:3000](http://localhost:3000) to view the application.
       queueLimit: 0
   });
   ```
+
 - [ ] Caching System
+
   ```javascript
   // utils/cache.js
   import Redis from 'ioredis';
@@ -93,11 +101,14 @@ Visit [http://localhost:3000](http://localhost:3000) to view the application.
       port: process.env.REDIS_PORT
   });
   ```
+
 - [ ] Content Delivery Network (CDN)
 - [ ] Load Balancing
 
 ### Elasticity (* - Priority)
+
 - [ ] Auto-scaling Configuration
+
   ```yaml
   # aws/auto-scaling.yml
   AutoScalingGroup:
@@ -107,12 +118,15 @@ Visit [http://localhost:3000](http://localhost:3000) to view the application.
     HealthCheckType: ELB
     HealthCheckGracePeriod: 300
   ```
+
 - [ ] Container Orchestration
 - [ ] Elastic Load Balancer
 - [ ] Microservices Architecture
 
 ### Reliability (* - Priority)
+
 - [ ] Health Monitoring
+
   ```javascript
   // pages/api/health.js
   export default async function handler(req, res) {
@@ -130,14 +144,17 @@ Visit [http://localhost:3000](http://localhost:3000) to view the application.
       }
   }
   ```
+
 - [ ] Automated Backups
 - [ ] Error Handling
 - [ ] Circuit Breakers
 - [ ] Retry Mechanisms
 
 ### Security (* - Priority)
+
 - [x] Authentication & Authorization
 - [ ] Rate Limiting
+
   ```javascript
   // middleware/rateLimit.js
   import rateLimit from 'express-rate-limit';
@@ -147,7 +164,9 @@ Visit [http://localhost:3000](http://localhost:3000) to view the application.
       max: 100
   });
   ```
+
 - [ ] Security Headers
+
   ```javascript
   // next.config.js
   module.exports = {
@@ -174,6 +193,7 @@ Visit [http://localhost:3000](http://localhost:3000) to view the application.
       }
   };
   ```
+
 - [ ] CSRF Protection
 - [ ] XSS Prevention
 
@@ -332,6 +352,7 @@ NEXT_PUBLIC_API_URL=http://localhost:3000/api
     - [ ] Scalability assessment (Growth capacity evaluation)
 
 Legend:
+
 - [x] Completed
 - [🔄] In Progress
 - [ ] Not Started
@@ -367,10 +388,12 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🔐 Authentication
 
 ### User Roles
+
 - **Admin**: Full system access (`admin@kappy.com`)
 - **Customer**: Standard user privileges (default for new registrations)
 
 ### Features
+
 - Secure password hashing with bcrypt
 - JWT-based session management
 - Role-based access control

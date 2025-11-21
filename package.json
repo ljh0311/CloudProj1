@@ -11,7 +11,7 @@
     "lint": "next lint",
     "format": "prettier --write .",
     "prepare": "husky install",
-    "init-db": "node -r dotenv/config scripts/init-db.js",
+    "init-db": "node -r dotenv/config scripts/init-postgres-db.js",
     "setup-db": "node -r dotenv/config scripts/setup-db-permissions.js"
   },
   "dependencies": {
@@ -24,8 +24,9 @@
     "formik": "^2.4.6",
     "framer-motion": "^10.17.9",
     "mysql2": "^3.12.0",
-    "next": "^14.0.4",
+    "next": "^15.5.0",
     "next-auth": "^4.24.11",
+    "pg": "^8.16.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-icons": "^5.0.1",
@@ -65,4 +66,4 @@
   ],
   "author": "KAPPY Team",
   "license": "UNLICENSED"
-} 
+}
